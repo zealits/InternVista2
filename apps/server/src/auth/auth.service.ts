@@ -107,8 +107,14 @@ export class AuthService {
         secrets: { create: { password: hashedPassword } },
       });
 
-      // Do not `await` this function, otherwise the user will have to wait for the email to be sent before the response is returned
-      this.sendVerificationEmail(user.email);
+      // Send verification email (non-blocking - don't await)
+      // Registration should succeed even if email sending fails
+      this.sendVerificationEmail(user.email).catch((error) => {
+        Logger.error(
+          `Failed to send verification email during registration: ${error instanceof Error ? error.message : String(error)}`,
+          "AuthService#register",
+        );
+      });
 
       return user as UserWithSecrets;
     } catch (error) {
@@ -200,39 +206,154 @@ export class AuthService {
   }
 
   // Email Verification Flows
-  async sendVerificationEmail(email: string) {
-    try {
-      const token = this.generateToken("verification");
+  /**
+   * Generate a verification token (20-byte hex string)
+   */
+  private generateVerificationToken(): string {
+    return randomBytes(20).toString("hex");
+  }
 
-      // Set the verification token in the database
+  /**
+   * Get token expiration date (24 hours from now)
+   */
+  private getTokenExpiration(): Date {
+    return new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+  }
+
+  /**
+   * Send verification email to user
+   * Non-blocking: errors are logged but don't throw
+   */
+  async sendVerificationEmail(email: string): Promise<void> {
+    try {
+      // Find user to get their name
+      const user = await this.userService.findOneByIdentifier(email);
+      if (!user) {
+        Logger.warn(`User not found for email: ${email}`, "AuthService#sendVerificationEmail");
+        return;
+      }
+
+      // Generate verification token (20-byte hex)
+      const token = this.generateVerificationToken();
+      const expiration = this.getTokenExpiration();
+
+      // Set the verification token and expiration in the database
       await this.userService.updateByEmail(email, {
-        secrets: { update: { verificationToken: token } },
+        secrets: {
+          update: {
+            verificationToken: token,
+            verificationTokenExpire: expiration,
+          },
+        },
       });
 
-      const url = `http://internvista.com/auth/verify-email?token=${token}`;
-      const subject = "Verify your email address";
-      const text = `Please verify your email address by clicking on the link below:\n\n${url}`;
-
-      await this.mailService.sendEmail({ to: email, subject, text });
+      // Send verification email (non-blocking)
+      // Don't await to avoid blocking registration flow
+      this.mailService
+        .sendVerificationEmail(email, user.name, token)
+        .catch((error) => {
+          Logger.error(
+            `Failed to send verification email to ${email}: ${error instanceof Error ? error.message : String(error)}`,
+            "AuthService#sendVerificationEmail",
+          );
+          // Don't throw - registration should succeed even if email fails
+        });
     } catch (error) {
-      Logger.error(error);
-      throw new InternalServerErrorException(error);
+      Logger.error(
+        `Error in sendVerificationEmail for ${email}: ${error instanceof Error ? error.message : String(error)}`,
+        "AuthService#sendVerificationEmail",
+      );
+      // Don't throw - allow registration to continue even if email setup fails
     }
   }
 
-  async verifyEmail(id: string, token: string) {
-    const user = await this.userService.findOneById(id);
+  /**
+   * Verify email using token
+   * Checks token validity and expiration
+   */
+  async verifyEmail(token: string): Promise<void> {
+    if (!token) {
+      throw new BadRequestException(ErrorMessage.InvalidVerificationToken);
+    }
+
+    // Find user by verification token
+    const user = await this.userService.findByVerificationToken(token);
+
+    if (!user) {
+      throw new BadRequestException(ErrorMessage.InvalidVerificationToken);
+    }
 
     const storedToken = user.secrets?.verificationToken;
+    const tokenExpire = user.secrets?.verificationTokenExpire;
 
+    // Validate token matches
     if (!storedToken || storedToken !== token) {
       throw new BadRequestException(ErrorMessage.InvalidVerificationToken);
     }
 
+    // Check if token has expired
+    if (!tokenExpire || new Date() > tokenExpire) {
+      throw new BadRequestException("Verification token has expired. Please request a new verification email.");
+    }
+
+    // Verify email and clear token
     await this.userService.updateByEmail(user.email, {
       emailVerified: true,
-      secrets: { update: { verificationToken: null } },
+      secrets: {
+        update: {
+          verificationToken: null,
+          verificationTokenExpire: null,
+        },
+      },
     });
+
+    // Send welcome email (non-blocking)
+    this.mailService
+      .sendWelcomeEmail(user.email, user.name)
+      .catch((error) => {
+        Logger.error(
+          `Failed to send welcome email to ${user.email}: ${error instanceof Error ? error.message : String(error)}`,
+          "AuthService#verifyEmail",
+        );
+        // Don't throw - verification should succeed even if welcome email fails
+      });
+  }
+
+  /**
+   * Resend verification email
+   * Generates new token and expiration
+   */
+  async resendVerificationEmail(email: string): Promise<void> {
+    // Find user by email
+    const user = await this.userService.findOneByIdentifier(email);
+
+    if (!user) {
+      // Don't reveal if user exists or not for security
+      Logger.warn(`Resend verification requested for non-existent email: ${email}`, "AuthService#resendVerificationEmail");
+      return; // Silently succeed to prevent email enumeration
+    }
+
+    // Check if already verified
+    if (user.emailVerified) {
+      throw new BadRequestException(ErrorMessage.EmailAlreadyVerified);
+    }
+
+    // Generate new verification token and expiration
+    const token = this.generateVerificationToken();
+    const expiration = this.getTokenExpiration();
+
+    // Update token in database
+    await this.userService.updateByEmail(email, {
+      secrets: {
+        update: {
+          verificationToken: token,
+          verificationTokenExpire: expiration,
+        },
+      },
+    });
+
+    // Send verification email
+    await this.mailService.sendVerificationEmail(email, user.name, token);
   }
 
   // Two-Factor Authentication Flows
@@ -344,3 +465,4 @@ export class AuthService {
     return user as UserWithSecrets;
   }
 }
+

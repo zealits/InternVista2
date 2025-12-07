@@ -4,9 +4,10 @@ import { AxiosResponse } from "axios";
 
 import { axios } from "@/client/libs/axios";
 
-export const resendVerificationEmail = async () => {
+export const resendVerificationEmail = async (email?: string) => {
   const response = await axios.post<MessageDto, AxiosResponse<MessageDto>>(
-    "/auth/verify-email/resend",
+    "/auth/resend-verification",
+    email ? { email } : undefined,
   );
 
   return response.data;

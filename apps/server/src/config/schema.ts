@@ -25,8 +25,11 @@ export const configSchema = z.object({
   CHROME_URL: z.string().url(),
 
   // Mail Server
-  MAIL_FROM: z.string().includes("@").optional().default("noreply@localhost"),
-  SMTP_URL: z.string().url().startsWith("smtp://").optional(),
+  SMTP_SERVICE: z.string().optional(),
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.coerce.number().optional(),
+  SMTP_MAIL: z.string().optional(),
+  SMTP_PASSWORD: z.string().optional(),
 
   // Storage
   STORAGE_ENDPOINT: z.string(),

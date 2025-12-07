@@ -30,6 +30,11 @@ export const routes = createRoutesFromElements(
       <Route path="/" element={<HomePage />} />
     </Route>
 
+    {/* Email Verification - Root level (accessible without auth) */}
+    <Route element={<AuthLayout />}>
+      <Route path="verify-email" element={<VerifyEmailPage />} />
+    </Route>
+
     <Route path="auth">
       <Route element={<AuthLayout />}>
         <Route element={<GuestGuard />}>
@@ -49,10 +54,8 @@ export const routes = createRoutesFromElements(
           <Route path="backup-otp" element={<BackupOtpPage />} />
         </Route>
 
-        {/* Email Verification */}
-        <Route element={<AuthGuard />}>
-          <Route path="verify-email" element={<VerifyEmailPage />} />
-        </Route>
+        {/* Email Verification - Also available at /auth/verify-email for backward compatibility */}
+        <Route path="verify-email" element={<VerifyEmailPage />} />
 
         {/* OAuth Callback */}
         <Route path="callback" loader={authLoader} />

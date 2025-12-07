@@ -91,7 +91,9 @@ export const AccountSettings = () => {
   };
 
   const onResendVerificationEmail = async () => {
-    const data = await resendVerificationEmail();
+    if (!user?.email) return;
+    
+    const data = await resendVerificationEmail(user.email);
 
     toast({ variant: "success", title: data.message });
   };

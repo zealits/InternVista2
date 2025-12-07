@@ -76,19 +76,19 @@ const nest_raven_1 = __webpack_require__(13);
 const nestjs_zod_1 = __webpack_require__(10);
 const path_1 = __webpack_require__(14);
 const auth_module_1 = __webpack_require__(15);
-const cache_module_1 = __webpack_require__(133);
-const config_module_1 = __webpack_require__(134);
-const contributors_module_1 = __webpack_require__(136);
-const database_module_1 = __webpack_require__(140);
-const health_module_1 = __webpack_require__(141);
+const cache_module_1 = __webpack_require__(134);
+const config_module_1 = __webpack_require__(135);
+const contributors_module_1 = __webpack_require__(137);
+const database_module_1 = __webpack_require__(141);
+const health_module_1 = __webpack_require__(142);
 const mail_module_1 = __webpack_require__(18);
-const printer_module_1 = __webpack_require__(144);
-const resume_module_1 = __webpack_require__(154);
-const storage_module_1 = __webpack_require__(23);
-const translation_module_1 = __webpack_require__(163);
-const user_module_1 = __webpack_require__(22);
-const utils_module_1 = __webpack_require__(166);
-const email_controller_1 = __webpack_require__(167);
+const printer_module_1 = __webpack_require__(145);
+const resume_module_1 = __webpack_require__(155);
+const storage_module_1 = __webpack_require__(24);
+const translation_module_1 = __webpack_require__(164);
+const user_module_1 = __webpack_require__(23);
+const utils_module_1 = __webpack_require__(167);
+const email_controller_1 = __webpack_require__(168);
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -176,17 +176,17 @@ const config_1 = __webpack_require__(3);
 const jwt_1 = __webpack_require__(16);
 const passport_1 = __webpack_require__(17);
 const mail_module_1 = __webpack_require__(18);
-const user_module_1 = __webpack_require__(22);
-const user_service_1 = __webpack_require__(111);
-const auth_controller_1 = __webpack_require__(113);
-const auth_service_1 = __webpack_require__(107);
-const dummy_strategy_1 = __webpack_require__(121);
-const github_strategy_1 = __webpack_require__(123);
-const google_strategy_1 = __webpack_require__(125);
-const jwt_strategy_1 = __webpack_require__(127);
-const local_strategy_1 = __webpack_require__(129);
-const refresh_strategy_1 = __webpack_require__(131);
-const two_factor_strategy_1 = __webpack_require__(132);
+const user_module_1 = __webpack_require__(23);
+const user_service_1 = __webpack_require__(112);
+const auth_controller_1 = __webpack_require__(114);
+const auth_service_1 = __webpack_require__(108);
+const dummy_strategy_1 = __webpack_require__(122);
+const github_strategy_1 = __webpack_require__(124);
+const google_strategy_1 = __webpack_require__(126);
+const jwt_strategy_1 = __webpack_require__(128);
+const local_strategy_1 = __webpack_require__(130);
+const refresh_strategy_1 = __webpack_require__(132);
+const two_factor_strategy_1 = __webpack_require__(133);
 let AuthModule = AuthModule_1 = class AuthModule {
     static register() {
         return {
@@ -266,7 +266,11 @@ const config_1 = __webpack_require__(3);
 const mailer_1 = __webpack_require__(19);
 const nodemailer = tslib_1.__importStar(__webpack_require__(20));
 const mail_service_1 = __webpack_require__(21);
-const emptyTransporter = nodemailer.createTransport({});
+const email_templates_service_1 = __webpack_require__(22);
+// Create a mock transporter that logs instead of sending
+const emptyTransporter = nodemailer.createTransport({
+    jsonTransport: true, // This makes it log instead of actually sending
+});
 let MailModule = class MailModule {
 };
 exports.MailModule = MailModule;
@@ -276,20 +280,235 @@ exports.MailModule = MailModule = tslib_1.__decorate([
             mailer_1.MailerModule.forRootAsync({
                 inject: [config_1.ConfigService],
                 useFactory: (configService) => {
-                    const from = configService.get("MAIL_FROM");
-                    const smtpUrl = configService.get("SMTP_URL");
-                    if (!smtpUrl) {
-                        common_1.Logger.warn("Since `SMTP_URL` is not set, emails would be logged to the console instead. This is not recommended for production environments.", "MailModule");
+                    console.log("[MailModule] ===== INITIALIZING MAIL MODULE =====");
+                    // Hardcode Gmail SMTP settings to ensure they're always used
+                    const smtpHost = configService.get("SMTP_HOST") || "smtp.gmail.com";
+                    const smtpPort = configService.get("SMTP_PORT") || 465;
+                    const smtpMail = configService.get("SMTP_MAIL");
+                    const smtpPassword = configService.get("SMTP_PASSWORD");
+                    const smtpService = configService.get("SMTP_SERVICE");
+                    // Force use of Gmail SMTP if SMTP_SERVICE is gmail
+                    const finalHost = smtpService === "gmail" ? "smtp.gmail.com" : smtpHost;
+                    const finalPort = smtpService === "gmail" ? 465 : smtpPort;
+                    console.log("[MailModule] Raw config values:");
+                    console.log("  SMTP_HOST:", smtpHost || "not set");
+                    console.log("  SMTP_PORT:", smtpPort || "not set");
+                    console.log("  SMTP_MAIL:", smtpMail || "not set");
+                    console.log("  SMTP_PASSWORD:", smtpPassword ? "***" : "not set");
+                    console.log("  SMTP_SERVICE:", smtpService || "not set");
+                    // Debug logging to verify configuration - always log to help diagnose issues
+                    common_1.Logger.log(`SMTP Config Check - Host: ${smtpHost || "not set"}, Port: ${smtpPort || "not set"}, Mail: ${smtpMail ? "***" : "not set"}, Password: ${smtpPassword ? "***" : "not set"}, Service: ${smtpService || "not set"}`, "MailModule");
+                    let transport;
+                    // PRIORITY 1: If SMTP_SERVICE is "gmail", always use Gmail SMTP configuration
+                    if (smtpService === "gmail" && smtpMail && smtpPassword) {
+                        console.log("[MailModule] Gmail service detected - using explicit smtp.gmail.com:465");
+                        const transportConfig = {
+                            host: "smtp.gmail.com",
+                            port: 465,
+                            secure: true,
+                            auth: {
+                                user: smtpMail,
+                                pass: smtpPassword,
+                            },
+                            tls: {
+                                rejectUnauthorized: false,
+                            },
+                        };
+                        console.log("[MailModule] Transport config:", {
+                            host: transportConfig.host,
+                            port: transportConfig.port,
+                            secure: transportConfig.secure,
+                            user: transportConfig.auth.user,
+                            hasPassword: !!transportConfig.auth.pass
+                        });
+                        common_1.Logger.log(`Creating Gmail SMTP transport: Host: smtp.gmail.com, Port: 465, Secure: true, User: ${smtpMail}`, "MailModule");
+                        // Pass the transport config directly to MailerModule instead of pre-creating
+                        // This ensures MailerModule uses our configuration
+                        transport = transportConfig;
+                        console.log("[MailModule] Transport config passed directly to MailerModule");
+                        // Verify the transport configuration
+                        console.log("[MailModule] Transport config being passed:", {
+                            host: transport.host || "N/A",
+                            port: transport.port || "N/A",
+                            secure: transport.secure !== undefined ? transport.secure : "N/A",
+                            hasAuth: !!transport.auth
+                        });
+                    }
+                    // PRIORITY 2: Use individual SMTP configuration (host/port) if provided
+                    else if (finalHost && finalPort && smtpMail && smtpPassword) {
+                        console.log("[MailModule] Using individual SMTP config");
+                        console.log("  Host:", finalHost);
+                        console.log("  Port:", finalPort);
+                        console.log("  Mail:", smtpMail);
+                        // Check if SMTP_HOST is localhost/127.0.0.1 - this usually means misconfiguration
+                        const isLocalhost = finalHost === "localhost" ||
+                            finalHost === "127.0.0.1" ||
+                            finalHost === "::1" ||
+                            finalHost.startsWith("127.");
+                        if (isLocalhost) {
+                            console.log("[MailModule] WARNING: SMTP_HOST is localhost - forcing Gmail SMTP");
+                            // Force Gmail SMTP instead of using empty transporter
+                            console.log("[MailModule] Overriding to use smtp.gmail.com:465");
+                            const transportConfig = {
+                                host: "smtp.gmail.com",
+                                port: 465,
+                                secure: true,
+                                auth: {
+                                    user: smtpMail,
+                                    pass: smtpPassword,
+                                },
+                                tls: {
+                                    rejectUnauthorized: false,
+                                },
+                            };
+                            console.log("[MailModule] Transport config:", {
+                                host: transportConfig.host,
+                                port: transportConfig.port,
+                                secure: transportConfig.secure,
+                                user: transportConfig.auth.user,
+                                hasPassword: !!transportConfig.auth.pass
+                            });
+                            common_1.Logger.log(`Creating SMTP transport: Host: smtp.gmail.com, Port: 465, Secure: true, User: ${smtpMail}`, "MailModule");
+                            // Pass transport config directly to MailerModule
+                            transport = transportConfig;
+                            console.log("[MailModule] Transport config passed directly to MailerModule (localhost override)");
+                        }
+                        else {
+                            console.log("[MailModule] Creating transport with host/port config");
+                            const isSecure = finalPort === 465; // Port 465 uses SSL, 587 uses TLS
+                            // For Gmail and other services, explicitly set host/port and DO NOT use 'service'
+                            // This prevents nodemailer from overriding our settings with defaults
+                            const transportConfig = {
+                                host: finalHost,
+                                port: Number(finalPort), // Ensure it's a number
+                                secure: isSecure, // true for 465, false for other ports
+                                auth: {
+                                    user: smtpMail,
+                                    pass: smtpPassword,
+                                },
+                            };
+                            // For Gmail with port 465, ensure SSL is properly configured
+                            if (isSecure) {
+                                transportConfig.tls = {
+                                    rejectUnauthorized: false, // Allow self-signed certificates if needed
+                                };
+                            }
+                            else {
+                                // For TLS (port 587)
+                                transportConfig.requireTLS = true;
+                                transportConfig.tls = {
+                                    rejectUnauthorized: false,
+                                };
+                            }
+                            console.log("[MailModule] Transport config:", {
+                                host: transportConfig.host,
+                                port: transportConfig.port,
+                                secure: transportConfig.secure,
+                                user: transportConfig.auth.user,
+                                hasPassword: !!transportConfig.auth.pass
+                            });
+                            common_1.Logger.log(`Creating SMTP transport: Host: ${finalHost}, Port: ${finalPort}, Secure: ${isSecure}, User: ${smtpMail}`, "MailModule");
+                            // Pass transport config directly to MailerModule
+                            transport = transportConfig;
+                            console.log("[MailModule] Transport config passed directly to MailerModule");
+                        }
+                    }
+                    // PRIORITY 3: Use SMTP_SERVICE for other services
+                    else if (smtpService && smtpMail && smtpPassword) {
+                        console.log("[MailModule] Using SMTP_SERVICE:", smtpService);
+                        console.log("  Mail:", smtpMail);
+                        if (finalHost && finalPort) {
+                            // For other services, use explicit host/port if available
+                            console.log("[MailModule] Using explicit host/port config");
+                            console.log("  Host:", finalHost);
+                            console.log("  Port:", finalPort);
+                            const isSecure = finalPort === 465;
+                            const transportConfig = {
+                                host: finalHost,
+                                port: Number(finalPort),
+                                secure: isSecure,
+                                auth: {
+                                    user: smtpMail,
+                                    pass: smtpPassword,
+                                },
+                            };
+                            if (isSecure) {
+                                transportConfig.tls = {
+                                    rejectUnauthorized: false,
+                                };
+                            }
+                            else {
+                                transportConfig.requireTLS = true;
+                                transportConfig.tls = {
+                                    rejectUnauthorized: false,
+                                };
+                            }
+                            // Pass transport config directly to MailerModule
+                            transport = transportConfig;
+                            console.log("[MailModule] Transport config passed directly to MailerModule");
+                        }
+                        else {
+                            // Use service-based config (nodemailer will use service defaults)
+                            common_1.Logger.log(`Using SMTP service: ${smtpService} with email: ${smtpMail ? "***" : "not set"}`, "MailModule");
+                            // Pass service config directly to MailerModule
+                            transport = {
+                                service: smtpService,
+                                auth: {
+                                    user: smtpMail,
+                                    pass: smtpPassword,
+                                },
+                            };
+                            console.log("[MailModule] Service-based transport config passed directly to MailerModule");
+                        }
+                    }
+                    else {
+                        console.log("[MailModule] No valid SMTP config - using empty transporter");
+                        common_1.Logger.warn(`SMTP configuration incomplete. Required: SMTP_HOST, SMTP_PORT, SMTP_MAIL, SMTP_PASSWORD. Found - Host: ${smtpHost || "not set"}, Port: ${smtpPort || "not set"}, Mail: ${smtpMail ? "set" : "not set"}, Password: ${smtpPassword ? "set" : "not set"}`, "MailModule");
+                        common_1.Logger.warn("Since SMTP configuration is not set, emails would be logged to the console instead. This is not recommended for production environments.", "MailModule");
+                        transport = emptyTransporter;
+                    }
+                    // Final verification: ensure transport is properly configured
+                    if (transport) {
+                        // If transport is a config object (not a pre-created transporter)
+                        if (typeof transport === 'object' && !transport.sendMail && transport.host) {
+                            const finalConfig = transport;
+                            console.log("[MailModule] Final transport configuration being returned:", {
+                                host: finalConfig.host || "N/A",
+                                port: finalConfig.port || "N/A",
+                                secure: finalConfig.secure !== undefined ? finalConfig.secure : "N/A",
+                                service: finalConfig.service || "N/A",
+                                hasAuth: !!finalConfig.auth
+                            });
+                            // Warn if we detect localhost configuration
+                            if (finalConfig.host && (finalConfig.host === "localhost" || finalConfig.host === "127.0.0.1" || finalConfig.host.startsWith("127."))) {
+                                common_1.Logger.error(`CRITICAL: Transport is configured with localhost (${finalConfig.host}:${finalConfig.port}). This will not work!`, "MailModule");
+                            }
+                        }
+                        else {
+                            // If transport is a pre-created transporter
+                            const finalConfig = transport.options || transport.transporter?.options || {};
+                            console.log("[MailModule] Final transport configuration being returned:", {
+                                host: finalConfig.host || "N/A",
+                                port: finalConfig.port || "N/A",
+                                secure: finalConfig.secure !== undefined ? finalConfig.secure : "N/A",
+                                service: finalConfig.service || "N/A",
+                                hasAuth: !!finalConfig.auth
+                            });
+                            // Warn if we detect localhost configuration
+                            if (finalConfig.host && (finalConfig.host === "localhost" || finalConfig.host === "127.0.0.1" || finalConfig.host.startsWith("127."))) {
+                                common_1.Logger.error(`CRITICAL: Transport is configured with localhost (${finalConfig.host}:${finalConfig.port}). This will not work!`, "MailModule");
+                            }
+                        }
                     }
                     return {
-                        defaults: { from },
-                        transport: smtpUrl || emptyTransporter,
+                        defaults: { from: smtpMail || "noreply@internvista.com" },
+                        transport,
                     };
                 },
             }),
         ],
-        providers: [mail_service_1.MailService],
-        exports: [mail_service_1.MailService],
+        providers: [mail_service_1.MailService, email_templates_service_1.EmailTemplatesService],
+        exports: [mail_service_1.MailService, email_templates_service_1.EmailTemplatesService],
     })
 ], MailModule);
 
@@ -311,31 +530,192 @@ module.exports = require("nodemailer");
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
-var _a, _b;
+var _a, _b, _c;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.MailService = void 0;
 const tslib_1 = __webpack_require__(1);
 const common_1 = __webpack_require__(2);
 const config_1 = __webpack_require__(3);
 const mailer_1 = __webpack_require__(19);
+const email_templates_service_1 = __webpack_require__(22);
+/**
+ * Mail Service
+ * Handles sending emails via SMTP with proper error handling
+ */
 let MailService = class MailService {
-    constructor(configService, mailerService) {
+    constructor(configService, mailerService, emailTemplates) {
         this.configService = configService;
         this.mailerService = mailerService;
+        this.emailTemplates = emailTemplates;
     }
-    async sendEmail(options) {
-        const smtpUrl = this.configService.get("SMTP_URL");
-        // If `SMTP_URL` is not set, log the email to the console
-        if (!smtpUrl) {
-            return common_1.Logger.log(options, "MailService#sendEmail");
+    /**
+     * Check if SMTP is properly configured
+     */
+    isSmtpConfigured() {
+        const smtpMail = this.configService.get("SMTP_MAIL");
+        const smtpPassword = this.configService.get("SMTP_PASSWORD");
+        const smtpService = this.configService.get("SMTP_SERVICE");
+        console.log("[MailService] isSmtpConfigured - Checking config:");
+        console.log("  SMTP_SERVICE:", smtpService || "not set");
+        console.log("  SMTP_MAIL:", smtpMail || "not set");
+        console.log("  SMTP_PASSWORD:", smtpPassword ? "***" : "not set");
+        // Check if SMTP_SERVICE is configured (doesn't need host/port)
+        if (smtpService && smtpMail && smtpPassword) {
+            console.log("[MailService] SMTP configured via SMTP_SERVICE");
+            return true;
         }
-        return await this.mailerService.sendMail(options);
+        // Check if individual SMTP config is set and not localhost (needs host/port)
+        const smtpHost = this.configService.get("SMTP_HOST");
+        const smtpPort = this.configService.get("SMTP_PORT");
+        console.log("  SMTP_HOST:", smtpHost || "not set");
+        console.log("  SMTP_PORT:", smtpPort || "not set");
+        if (smtpHost && smtpPort && smtpMail && smtpPassword) {
+            const isLocalhost = smtpHost === "localhost" ||
+                smtpHost === "127.0.0.1" ||
+                smtpHost === "::1" ||
+                smtpHost.startsWith("127.");
+            if (isLocalhost) {
+                console.log("[MailService] SMTP_HOST is localhost - NOT configured");
+                return false; // Localhost hosts are not valid SMTP configurations
+            }
+            console.log("[MailService] SMTP configured via individual config (host/port)");
+            return true;
+        }
+        console.log("[MailService] SMTP NOT configured - missing required fields");
+        return false;
+    }
+    /**
+     * Send email with HTML and text support
+     */
+    async sendEmail(options) {
+        console.log("[MailService] sendEmail called");
+        console.log("  To:", options.to);
+        console.log("  Subject:", options.subject);
+        const isConfigured = this.isSmtpConfigured();
+        console.log("[MailService] isSmtpConfigured result:", isConfigured);
+        // Check the actual transport being used - try different ways to access it
+        const mailerService = this.mailerService;
+        console.log("[MailService] MailerService structure:", {
+            hasTransporter: !!mailerService?.transporter,
+            hasTransport: !!mailerService?.transport,
+            keys: Object.keys(mailerService || {})
+        });
+        let transportOptions = {};
+        const transporter = mailerService?.transporter || mailerService?.transport;
+        if (transporter) {
+            // Try different ways to access nodemailer transport options
+            // Nodemailer stores options in different places depending on transport type
+            const directOptions = transporter.options;
+            const nestedOptions = transporter.transporter?.options;
+            const smtpOptions = transporter.smtp?.options;
+            transportOptions = directOptions || nestedOptions || smtpOptions || {};
+            // Also try to get from the actual nodemailer transport
+            if (transporter.transporter) {
+                const nodemailerTransport = transporter.transporter;
+                transportOptions = {
+                    ...transportOptions,
+                    host: nodemailerTransport.options?.host ||
+                        nodemailerTransport.hostname ||
+                        nodemailerTransport.host ||
+                        transportOptions.host ||
+                        "N/A",
+                    port: nodemailerTransport.options?.port ||
+                        nodemailerTransport.port ||
+                        transportOptions.port ||
+                        "N/A",
+                    secure: nodemailerTransport.options?.secure !== undefined ?
+                        nodemailerTransport.options.secure :
+                        (nodemailerTransport.secure !== undefined ? nodemailerTransport.secure : transportOptions.secure),
+                    service: nodemailerTransport.options?.service ||
+                        nodemailerTransport.service ||
+                        transportOptions.service ||
+                        "N/A",
+                };
+            }
+            // If we still don't have host, try to get it from the connection
+            if (!transportOptions.host || transportOptions.host === "N/A") {
+                const connection = transporter.connection || transporter.socket;
+                if (connection) {
+                    transportOptions.host = connection.hostname || connection.host || transportOptions.host || "N/A";
+                    transportOptions.port = connection.port || transportOptions.port || "N/A";
+                }
+            }
+        }
+        console.log("[MailService] Current transport config:", {
+            host: transportOptions.host || "N/A",
+            port: transportOptions.port || "N/A",
+            secure: transportOptions.secure !== undefined ? transportOptions.secure : "N/A",
+            service: transportOptions.service || "N/A",
+            auth: transportOptions.auth ? { user: transportOptions.auth.user || "N/A", hasPass: !!transportOptions.auth.pass } : "N/A"
+        });
+        // Warn if we detect localhost configuration
+        if (transportOptions.host && transportOptions.host !== "N/A" &&
+            (transportOptions.host === "localhost" || transportOptions.host === "127.0.0.1" || transportOptions.host.startsWith("127."))) {
+            common_1.Logger.warn(`WARNING: Transport is configured with localhost (${transportOptions.host}:${transportOptions.port}). This will fail!`, "MailService#sendEmail");
+        }
+        try {
+            console.log("[MailService] Attempting to send email via mailerService...");
+            const result = await this.mailerService.sendMail(options);
+            console.log("[MailService] Email sent successfully:", result);
+            return result;
+        }
+        catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            console.log("[MailService] Error sending email:", errorMessage);
+            console.log("[MailService] Full error:", error);
+            // Check for connection errors (ECONNREFUSED, ETIMEDOUT, etc.)
+            if (errorMessage.includes("ECONNREFUSED") || errorMessage.includes("ETIMEDOUT")) {
+                common_1.Logger.warn(`SMTP connection failed for ${options.to}: ${errorMessage}. Falling back to console logging. To fix this, either: 1) Remove SMTP configuration to use console logging, or 2) Configure a proper SMTP server (e.g., Gmail, SendGrid, etc.)`, "MailService#sendEmail");
+                // Log the email content as fallback
+                const bodyPreview = options.text ||
+                    (typeof options.html === 'string' ? options.html.substring(0, 100) :
+                        options.html instanceof Buffer ? options.html.toString('utf8').substring(0, 100) :
+                            "N/A");
+                common_1.Logger.log(`[Email would be sent] To: ${options.to}, Subject: ${options.subject}, Body: ${bodyPreview}`, "MailService#sendEmail");
+                // Return a mock response instead of throwing to prevent breaking the flow
+                return {
+                    messageId: "mock-message-id",
+                    accepted: [options.to],
+                    rejected: [],
+                    pending: [],
+                    response: "Email logged (SMTP connection failed)",
+                };
+            }
+            else {
+                common_1.Logger.error(`Failed to send email to ${options.to}: ${errorMessage}`, "MailService#sendEmail");
+            }
+            throw error;
+        }
+    }
+    /**
+     * Send verification email with HTML template
+     */
+    async sendVerificationEmail(email, name, verificationToken) {
+        const template = this.emailTemplates.getVerificationEmailTemplate(name, email, verificationToken);
+        await this.sendEmail({
+            to: email,
+            subject: template.subject,
+            html: template.html,
+            text: template.text,
+        });
+    }
+    /**
+     * Send welcome email with HTML template
+     */
+    async sendWelcomeEmail(email, name) {
+        const template = this.emailTemplates.getWelcomeEmailTemplate(name, email);
+        await this.sendEmail({
+            to: email,
+            subject: template.subject,
+            html: template.html,
+            text: template.text,
+        });
     }
 };
 exports.MailService = MailService;
 exports.MailService = MailService = tslib_1.__decorate([
     (0, common_1.Injectable)(),
-    tslib_1.__metadata("design:paramtypes", [typeof (_a = typeof config_1.ConfigService !== "undefined" && config_1.ConfigService) === "function" ? _a : Object, typeof (_b = typeof mailer_1.MailerService !== "undefined" && mailer_1.MailerService) === "function" ? _b : Object])
+    tslib_1.__metadata("design:paramtypes", [typeof (_a = typeof config_1.ConfigService !== "undefined" && config_1.ConfigService) === "function" ? _a : Object, typeof (_b = typeof mailer_1.MailerService !== "undefined" && mailer_1.MailerService) === "function" ? _b : Object, typeof (_c = typeof email_templates_service_1.EmailTemplatesService !== "undefined" && email_templates_service_1.EmailTemplatesService) === "function" ? _c : Object])
 ], MailService);
 
 
@@ -344,14 +724,230 @@ exports.MailService = MailService = tslib_1.__decorate([
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
+var _a;
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.EmailTemplatesService = void 0;
+const tslib_1 = __webpack_require__(1);
+const common_1 = __webpack_require__(2);
+const config_1 = __webpack_require__(3);
+/**
+ * Email Templates Service
+ * Provides HTML email templates for verification and welcome emails
+ */
+let EmailTemplatesService = class EmailTemplatesService {
+    constructor(configService) {
+        this.configService = configService;
+    }
+    /**
+     * Get the frontend URL for email links
+     */
+    getFrontendUrl() {
+        const publicUrl = this.configService.get("PUBLIC_URL");
+        const devClientUrl = this.configService.get("__DEV__CLIENT_URL");
+        return publicUrl || devClientUrl || "http://localhost:5173";
+    }
+    /**
+     * Base HTML email template wrapper
+     */
+    getBaseTemplate(content, subject) {
+        const frontendUrl = this.getFrontendUrl();
+        const appName = "InternVista"; // You can make this configurable
+        return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${subject}</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      line-height: 1.6;
+      color: #333333;
+      background-color: #f4f4f4;
+      margin: 0;
+      padding: 0;
+    }
+    .email-container {
+      max-width: 600px;
+      margin: 0 auto;
+      background-color: #ffffff;
+    }
+    .email-header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 30px 20px;
+      text-align: center;
+    }
+    .email-header h1 {
+      color: #ffffff;
+      margin: 0;
+      font-size: 24px;
+      font-weight: 600;
+    }
+    .email-body {
+      padding: 40px 30px;
+    }
+    .email-footer {
+      background-color: #f8f9fa;
+      padding: 20px 30px;
+      text-align: center;
+      font-size: 12px;
+      color: #6c757d;
+      border-top: 1px solid #e9ecef;
+    }
+    .button {
+      display: inline-block;
+      padding: 12px 30px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #ffffff !important;
+      text-decoration: none;
+      border-radius: 5px;
+      font-weight: 600;
+      margin: 20px 0;
+      text-align: center;
+    }
+    .button:hover {
+      opacity: 0.9;
+    }
+    .text-link {
+      color: #667eea;
+      word-break: break-all;
+    }
+    .expiration-notice {
+      background-color: #fff3cd;
+      border-left: 4px solid #ffc107;
+      padding: 12px 16px;
+      margin: 20px 0;
+      border-radius: 4px;
+    }
+    .expiration-notice p {
+      margin: 0;
+      font-size: 14px;
+      color: #856404;
+    }
+  </style>
+</head>
+<body>
+  <div class="email-container">
+    <div class="email-header">
+      <h1>${appName}</h1>
+    </div>
+    <div class="email-body">
+      ${content}
+    </div>
+    <div class="email-footer">
+      <p>© ${new Date().getFullYear()} ${appName}. All rights reserved.</p>
+      <p>If you have any questions, please contact our support team.</p>
+      <p>This is an automated email, please do not reply.</p>
+    </div>
+  </div>
+</body>
+</html>
+    `.trim();
+    }
+    /**
+     * Generate verification email HTML template
+     */
+    getVerificationEmailTemplate(name, email, verificationToken) {
+        const frontendUrl = this.getFrontendUrl();
+        const verificationUrl = `${frontendUrl}/verify-email?token=${verificationToken}&email=${encodeURIComponent(email)}`;
+        const htmlContent = `
+      <h2>Hello ${name}!</h2>
+      <p>Thank you for signing up for InternVista. To complete your registration, please verify your email address by clicking the button below:</p>
+      
+      <div style="text-align: center;">
+        <a href="${verificationUrl}" class="button">Verify Email Address</a>
+      </div>
+      
+      <p>Or copy and paste this link into your browser:</p>
+      <p><a href="${verificationUrl}" class="text-link">${verificationUrl}</a></p>
+      
+      <div class="expiration-notice">
+        <p><strong>⏰ Important:</strong> This verification link will expire in 24 hours. Please verify your email as soon as possible.</p>
+      </div>
+      
+      <p>If you didn't create an account with InternVista, you can safely ignore this email.</p>
+    `;
+        const textContent = `
+Hello ${name}!
+
+Thank you for signing up for InternVista. To complete your registration, please verify your email address by clicking the link below:
+
+${verificationUrl}
+
+Important: This verification link will expire in 24 hours. Please verify your email as soon as possible.
+
+If you didn't create an account with InternVista, you can safely ignore this email.
+    `.trim();
+        return {
+            subject: "Verify Your Email Address - InternVista",
+            html: this.getBaseTemplate(htmlContent, "Verify Your Email Address"),
+            text: textContent,
+        };
+    }
+    /**
+     * Generate welcome email HTML template
+     */
+    getWelcomeEmailTemplate(name, email) {
+        const frontendUrl = this.getFrontendUrl();
+        const loginUrl = `${frontendUrl}/auth/login`;
+        const htmlContent = `
+      <h2>Welcome to InternVista, ${name}! 🎉</h2>
+      <p>Your email has been successfully verified. You're all set to start using InternVista!</p>
+      
+      <p>You can now log in to your account and start exploring all the features we have to offer.</p>
+      
+      <div style="text-align: center;">
+        <a href="${loginUrl}" class="button">Log In to Your Account</a>
+      </div>
+      
+      <p>Or copy and paste this link into your browser:</p>
+      <p><a href="${loginUrl}" class="text-link">${loginUrl}</a></p>
+      
+      <p>If you have any questions or need help, don't hesitate to reach out to our support team.</p>
+      
+      <p>Best regards,<br>The InternVista Team</p>
+    `;
+        const textContent = `
+Welcome to InternVista, ${name}!
+
+Your email has been successfully verified. You're all set to start using InternVista!
+
+You can now log in to your account:
+${loginUrl}
+
+If you have any questions or need help, don't hesitate to reach out to our support team.
+
+Best regards,
+The InternVista Team
+    `.trim();
+        return {
+            subject: "Welcome to InternVista!",
+            html: this.getBaseTemplate(htmlContent, "Welcome to InternVista"),
+            text: textContent,
+        };
+    }
+};
+exports.EmailTemplatesService = EmailTemplatesService;
+exports.EmailTemplatesService = EmailTemplatesService = tslib_1.__decorate([
+    (0, common_1.Injectable)(),
+    tslib_1.__metadata("design:paramtypes", [typeof (_a = typeof config_1.ConfigService !== "undefined" && config_1.ConfigService) === "function" ? _a : Object])
+], EmailTemplatesService);
+
+
+/***/ }),
+/* 23 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.UserModule = void 0;
 const tslib_1 = __webpack_require__(1);
 const common_1 = __webpack_require__(2);
 const auth_module_1 = __webpack_require__(15);
-const storage_module_1 = __webpack_require__(23);
-const user_controller_1 = __webpack_require__(33);
-const user_service_1 = __webpack_require__(111);
+const storage_module_1 = __webpack_require__(24);
+const user_controller_1 = __webpack_require__(34);
+const user_service_1 = __webpack_require__(112);
 let UserModule = class UserModule {
 };
 exports.UserModule = UserModule;
@@ -366,7 +962,7 @@ exports.UserModule = UserModule = tslib_1.__decorate([
 
 
 /***/ }),
-/* 23 */
+/* 24 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -375,9 +971,9 @@ exports.StorageModule = void 0;
 const tslib_1 = __webpack_require__(1);
 const common_1 = __webpack_require__(2);
 const config_1 = __webpack_require__(3);
-const nestjs_minio_client_1 = __webpack_require__(24);
-const storage_controller_1 = __webpack_require__(25);
-const storage_service_1 = __webpack_require__(29);
+const nestjs_minio_client_1 = __webpack_require__(25);
+const storage_controller_1 = __webpack_require__(26);
+const storage_service_1 = __webpack_require__(30);
 let StorageModule = class StorageModule {
 };
 exports.StorageModule = StorageModule;
@@ -404,13 +1000,13 @@ exports.StorageModule = StorageModule = tslib_1.__decorate([
 
 
 /***/ }),
-/* 24 */
+/* 25 */
 /***/ ((module) => {
 
 module.exports = require("nestjs-minio-client");
 
 /***/ }),
-/* 25 */
+/* 26 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -419,11 +1015,11 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.StorageController = void 0;
 const tslib_1 = __webpack_require__(1);
 const common_1 = __webpack_require__(2);
-const platform_express_1 = __webpack_require__(26);
+const platform_express_1 = __webpack_require__(27);
 const swagger_1 = __webpack_require__(5);
-const two_factor_guard_1 = __webpack_require__(27);
-const user_decorator_1 = __webpack_require__(28);
-const storage_service_1 = __webpack_require__(29);
+const two_factor_guard_1 = __webpack_require__(28);
+const user_decorator_1 = __webpack_require__(29);
+const storage_service_1 = __webpack_require__(30);
 let StorageController = class StorageController {
     constructor(storageService) {
         this.storageService = storageService;
@@ -454,13 +1050,13 @@ exports.StorageController = StorageController = tslib_1.__decorate([
 
 
 /***/ }),
-/* 26 */
+/* 27 */
 /***/ ((module) => {
 
 module.exports = require("@nestjs/platform-express");
 
 /***/ }),
-/* 27 */
+/* 28 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -478,7 +1074,7 @@ exports.TwoFactorGuard = TwoFactorGuard = tslib_1.__decorate([
 
 
 /***/ }),
-/* 28 */
+/* 29 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -493,7 +1089,7 @@ exports.User = (0, common_1.createParamDecorator)((data, ctx) => {
 
 
 /***/ }),
-/* 29 */
+/* 30 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -504,10 +1100,10 @@ exports.StorageService = void 0;
 const tslib_1 = __webpack_require__(1);
 const common_1 = __webpack_require__(2);
 const config_1 = __webpack_require__(3);
-const cuid2_1 = __webpack_require__(30);
-const nestjs_redis_1 = __webpack_require__(31);
-const nestjs_minio_client_1 = __webpack_require__(24);
-const sharp_1 = tslib_1.__importDefault(__webpack_require__(32));
+const cuid2_1 = __webpack_require__(31);
+const nestjs_redis_1 = __webpack_require__(32);
+const nestjs_minio_client_1 = __webpack_require__(25);
+const sharp_1 = tslib_1.__importDefault(__webpack_require__(33));
 const PUBLIC_ACCESS_POLICY = {
     Version: "2012-10-17",
     Statement: [
@@ -642,25 +1238,25 @@ exports.StorageService = StorageService = StorageService_1 = tslib_1.__decorate(
 
 
 /***/ }),
-/* 30 */
+/* 31 */
 /***/ ((module) => {
 
 module.exports = require("@paralleldrive/cuid2");
 
 /***/ }),
-/* 31 */
+/* 32 */
 /***/ ((module) => {
 
 module.exports = require("@songkeys/nestjs-redis");
 
 /***/ }),
-/* 32 */
+/* 33 */
 /***/ ((module) => {
 
 module.exports = require("sharp");
 
 /***/ }),
-/* 33 */
+/* 34 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -670,13 +1266,13 @@ exports.UserController = void 0;
 const tslib_1 = __webpack_require__(1);
 const common_1 = __webpack_require__(2);
 const swagger_1 = __webpack_require__(5);
-const library_1 = __webpack_require__(34);
-const dto_1 = __webpack_require__(35);
-const utils_1 = __webpack_require__(80);
-const auth_service_1 = __webpack_require__(107);
-const two_factor_guard_1 = __webpack_require__(27);
-const user_decorator_1 = __webpack_require__(28);
-const user_service_1 = __webpack_require__(111);
+const library_1 = __webpack_require__(35);
+const dto_1 = __webpack_require__(36);
+const utils_1 = __webpack_require__(81);
+const auth_service_1 = __webpack_require__(108);
+const two_factor_guard_1 = __webpack_require__(28);
+const user_decorator_1 = __webpack_require__(29);
+const user_service_1 = __webpack_require__(112);
 let UserController = class UserController {
     constructor(authService, userService) {
         this.authService = authService;
@@ -753,25 +1349,10 @@ exports.UserController = UserController = tslib_1.__decorate([
 
 
 /***/ }),
-/* 34 */
+/* 35 */
 /***/ ((module) => {
 
 module.exports = require("@prisma/client/runtime/library");
-
-/***/ }),
-/* 35 */
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-const tslib_1 = __webpack_require__(1);
-tslib_1.__exportStar(__webpack_require__(36), exports);
-tslib_1.__exportStar(__webpack_require__(77), exports);
-tslib_1.__exportStar(__webpack_require__(78), exports);
-tslib_1.__exportStar(__webpack_require__(68), exports);
-tslib_1.__exportStar(__webpack_require__(106), exports);
-tslib_1.__exportStar(__webpack_require__(41), exports);
-
 
 /***/ }),
 /* 36 */
@@ -781,14 +1362,11 @@ tslib_1.__exportStar(__webpack_require__(41), exports);
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const tslib_1 = __webpack_require__(1);
 tslib_1.__exportStar(__webpack_require__(37), exports);
-tslib_1.__exportStar(__webpack_require__(40), exports);
-tslib_1.__exportStar(__webpack_require__(70), exports);
-tslib_1.__exportStar(__webpack_require__(71), exports);
-tslib_1.__exportStar(__webpack_require__(72), exports);
-tslib_1.__exportStar(__webpack_require__(73), exports);
-tslib_1.__exportStar(__webpack_require__(74), exports);
-tslib_1.__exportStar(__webpack_require__(75), exports);
-tslib_1.__exportStar(__webpack_require__(76), exports);
+tslib_1.__exportStar(__webpack_require__(78), exports);
+tslib_1.__exportStar(__webpack_require__(79), exports);
+tslib_1.__exportStar(__webpack_require__(69), exports);
+tslib_1.__exportStar(__webpack_require__(107), exports);
+tslib_1.__exportStar(__webpack_require__(42), exports);
 
 
 /***/ }),
@@ -797,9 +1375,27 @@ tslib_1.__exportStar(__webpack_require__(76), exports);
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+const tslib_1 = __webpack_require__(1);
+tslib_1.__exportStar(__webpack_require__(38), exports);
+tslib_1.__exportStar(__webpack_require__(41), exports);
+tslib_1.__exportStar(__webpack_require__(71), exports);
+tslib_1.__exportStar(__webpack_require__(72), exports);
+tslib_1.__exportStar(__webpack_require__(73), exports);
+tslib_1.__exportStar(__webpack_require__(74), exports);
+tslib_1.__exportStar(__webpack_require__(75), exports);
+tslib_1.__exportStar(__webpack_require__(76), exports);
+tslib_1.__exportStar(__webpack_require__(77), exports);
+
+
+/***/ }),
+/* 38 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ForgotPasswordDto = exports.forgotPasswordSchema = void 0;
-const dto_1 = __webpack_require__(38);
-const z_1 = __webpack_require__(39);
+const dto_1 = __webpack_require__(39);
+const z_1 = __webpack_require__(40);
 exports.forgotPasswordSchema = z_1.z.object({ email: z_1.z.string().email() });
 class ForgotPasswordDto extends (0, dto_1.createZodDto)(exports.forgotPasswordSchema) {
 }
@@ -807,27 +1403,27 @@ exports.ForgotPasswordDto = ForgotPasswordDto;
 
 
 /***/ }),
-/* 38 */
+/* 39 */
 /***/ ((module) => {
 
 module.exports = require("nestjs-zod/dto");
 
 /***/ }),
-/* 39 */
+/* 40 */
 /***/ ((module) => {
 
 module.exports = require("nestjs-zod/z");
 
 /***/ }),
-/* 40 */
+/* 41 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.LoginDto = exports.loginSchema = void 0;
-const dto_1 = __webpack_require__(38);
-const z_1 = __webpack_require__(39);
-const user_1 = __webpack_require__(41);
+const dto_1 = __webpack_require__(39);
+const z_1 = __webpack_require__(40);
+const user_1 = __webpack_require__(42);
 exports.loginSchema = z_1.z
     .object({
     identifier: z_1.z.string(),
@@ -847,25 +1443,25 @@ exports.LoginDto = LoginDto;
 
 
 /***/ }),
-/* 41 */
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-const tslib_1 = __webpack_require__(1);
-tslib_1.__exportStar(__webpack_require__(42), exports);
-tslib_1.__exportStar(__webpack_require__(43), exports);
-
-
-/***/ }),
 /* 42 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+const tslib_1 = __webpack_require__(1);
+tslib_1.__exportStar(__webpack_require__(43), exports);
+tslib_1.__exportStar(__webpack_require__(44), exports);
+
+
+/***/ }),
+/* 43 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.UpdateUserDto = exports.updateUserSchema = void 0;
-const dto_1 = __webpack_require__(38);
-const user_1 = __webpack_require__(43);
+const dto_1 = __webpack_require__(39);
+const user_1 = __webpack_require__(44);
 exports.updateUserSchema = user_1.userSchema.partial().pick({
     name: true,
     locale: true,
@@ -879,16 +1475,16 @@ exports.UpdateUserDto = UpdateUserDto;
 
 
 /***/ }),
-/* 43 */
+/* 44 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.UserWithSecrets = exports.userWithSecretsSchema = exports.UserDto = exports.userSchema = exports.usernameSchema = void 0;
-const schema_1 = __webpack_require__(44);
-const dto_1 = __webpack_require__(38);
-const z_1 = __webpack_require__(39);
-const secrets_1 = __webpack_require__(68);
+const schema_1 = __webpack_require__(45);
+const dto_1 = __webpack_require__(39);
+const z_1 = __webpack_require__(40);
+const secrets_1 = __webpack_require__(69);
 exports.usernameSchema = z_1.z
     .string()
     .min(3)
@@ -919,17 +1515,17 @@ exports.UserWithSecrets = UserWithSecrets;
 
 
 /***/ }),
-/* 44 */
+/* 45 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.defaultResumeData = exports.resumeDataSchema = void 0;
 const tslib_1 = __webpack_require__(1);
-const zod_1 = __webpack_require__(45);
-const basics_1 = __webpack_require__(46);
-const metadata_1 = __webpack_require__(52);
-const sections_1 = __webpack_require__(53);
+const zod_1 = __webpack_require__(46);
+const basics_1 = __webpack_require__(47);
+const metadata_1 = __webpack_require__(53);
+const sections_1 = __webpack_require__(54);
 // Schema
 exports.resumeDataSchema = zod_1.z.object({
     basics: basics_1.basicsSchema,
@@ -942,30 +1538,30 @@ exports.defaultResumeData = {
     sections: sections_1.defaultSections,
     metadata: metadata_1.defaultMetadata,
 };
-tslib_1.__exportStar(__webpack_require__(46), exports);
-tslib_1.__exportStar(__webpack_require__(52), exports);
-tslib_1.__exportStar(__webpack_require__(67), exports);
-tslib_1.__exportStar(__webpack_require__(53), exports);
 tslib_1.__exportStar(__webpack_require__(47), exports);
+tslib_1.__exportStar(__webpack_require__(53), exports);
+tslib_1.__exportStar(__webpack_require__(68), exports);
+tslib_1.__exportStar(__webpack_require__(54), exports);
+tslib_1.__exportStar(__webpack_require__(48), exports);
 
 
 /***/ }),
-/* 45 */
+/* 46 */
 /***/ ((module) => {
 
 module.exports = require("zod");
 
 /***/ }),
-/* 46 */
+/* 47 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.defaultBasics = exports.basicsSchema = void 0;
 const tslib_1 = __webpack_require__(1);
-const zod_1 = __webpack_require__(45);
-const shared_1 = __webpack_require__(47);
-const custom_1 = __webpack_require__(51);
+const zod_1 = __webpack_require__(46);
+const shared_1 = __webpack_require__(48);
+const custom_1 = __webpack_require__(52);
 // Schema
 exports.basicsSchema = zod_1.z.object({
     name: zod_1.z.string(),
@@ -1008,19 +1604,7 @@ exports.defaultBasics = {
         },
     },
 };
-tslib_1.__exportStar(__webpack_require__(51), exports);
-
-
-/***/ }),
-/* 47 */
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-const tslib_1 = __webpack_require__(1);
-tslib_1.__exportStar(__webpack_require__(48), exports);
-tslib_1.__exportStar(__webpack_require__(49), exports);
-tslib_1.__exportStar(__webpack_require__(50), exports);
+tslib_1.__exportStar(__webpack_require__(52), exports);
 
 
 /***/ }),
@@ -1029,14 +1613,10 @@ tslib_1.__exportStar(__webpack_require__(50), exports);
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.idSchema = void 0;
-const cuid2_1 = __webpack_require__(30);
-const zod_1 = __webpack_require__(45);
-exports.idSchema = zod_1.z
-    .string()
-    .cuid2()
-    .default((0, cuid2_1.createId)())
-    .describe("Unique identifier for the item in Cuid2 format");
+const tslib_1 = __webpack_require__(1);
+tslib_1.__exportStar(__webpack_require__(49), exports);
+tslib_1.__exportStar(__webpack_require__(50), exports);
+tslib_1.__exportStar(__webpack_require__(51), exports);
 
 
 /***/ }),
@@ -1045,9 +1625,25 @@ exports.idSchema = zod_1.z
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.idSchema = void 0;
+const cuid2_1 = __webpack_require__(31);
+const zod_1 = __webpack_require__(46);
+exports.idSchema = zod_1.z
+    .string()
+    .cuid2()
+    .default((0, cuid2_1.createId)())
+    .describe("Unique identifier for the item in Cuid2 format");
+
+
+/***/ }),
+/* 50 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.defaultItem = exports.itemSchema = void 0;
-const zod_1 = __webpack_require__(45);
-const id_1 = __webpack_require__(48);
+const zod_1 = __webpack_require__(46);
+const id_1 = __webpack_require__(49);
 // Schema
 exports.itemSchema = zod_1.z.object({
     id: id_1.idSchema,
@@ -1061,13 +1657,13 @@ exports.defaultItem = {
 
 
 /***/ }),
-/* 50 */
+/* 51 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.defaultUrl = exports.urlSchema = void 0;
-const zod_1 = __webpack_require__(45);
+const zod_1 = __webpack_require__(46);
 // Schema
 exports.urlSchema = zod_1.z.object({
     label: zod_1.z.string(),
@@ -1081,13 +1677,13 @@ exports.defaultUrl = {
 
 
 /***/ }),
-/* 51 */
+/* 52 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.customFieldsDefault = exports.customFieldSchema = void 0;
-const zod_1 = __webpack_require__(45);
+const zod_1 = __webpack_require__(46);
 exports.customFieldSchema = zod_1.z.object({
     id: zod_1.z.string().cuid2(),
     icon: zod_1.z.string(),
@@ -1098,13 +1694,13 @@ exports.customFieldsDefault = [];
 
 
 /***/ }),
-/* 52 */
+/* 53 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.defaultMetadata = exports.metadataSchema = exports.defaultLayout = void 0;
-const zod_1 = __webpack_require__(45);
+const zod_1 = __webpack_require__(46);
 exports.defaultLayout = [
     [
         ["profiles", "summary", "experience", "education", "projects", "volunteer", "references"],
@@ -1182,28 +1778,28 @@ exports.defaultMetadata = {
 
 
 /***/ }),
-/* 53 */
+/* 54 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.defaultSections = exports.defaultSection = exports.sectionsSchema = exports.customSchema = exports.sectionSchema = void 0;
 const tslib_1 = __webpack_require__(1);
-const zod_1 = __webpack_require__(45);
-const shared_1 = __webpack_require__(47);
-const award_1 = __webpack_require__(54);
-const certification_1 = __webpack_require__(55);
-const custom_section_1 = __webpack_require__(56);
-const education_1 = __webpack_require__(57);
-const experience_1 = __webpack_require__(58);
-const interest_1 = __webpack_require__(59);
-const language_1 = __webpack_require__(60);
-const profile_1 = __webpack_require__(61);
-const project_1 = __webpack_require__(62);
-const publication_1 = __webpack_require__(63);
-const reference_1 = __webpack_require__(64);
-const skill_1 = __webpack_require__(65);
-const volunteer_1 = __webpack_require__(66);
+const zod_1 = __webpack_require__(46);
+const shared_1 = __webpack_require__(48);
+const award_1 = __webpack_require__(55);
+const certification_1 = __webpack_require__(56);
+const custom_section_1 = __webpack_require__(57);
+const education_1 = __webpack_require__(58);
+const experience_1 = __webpack_require__(59);
+const interest_1 = __webpack_require__(60);
+const language_1 = __webpack_require__(61);
+const profile_1 = __webpack_require__(62);
+const project_1 = __webpack_require__(63);
+const publication_1 = __webpack_require__(64);
+const reference_1 = __webpack_require__(65);
+const skill_1 = __webpack_require__(66);
+const volunteer_1 = __webpack_require__(67);
 // Schema
 exports.sectionSchema = zod_1.z.object({
     name: zod_1.z.string(),
@@ -1292,7 +1888,6 @@ exports.defaultSections = {
     skills: { ...exports.defaultSection, id: "skills", name: "Skills", items: [] },
     custom: {},
 };
-tslib_1.__exportStar(__webpack_require__(54), exports);
 tslib_1.__exportStar(__webpack_require__(55), exports);
 tslib_1.__exportStar(__webpack_require__(56), exports);
 tslib_1.__exportStar(__webpack_require__(57), exports);
@@ -1305,17 +1900,18 @@ tslib_1.__exportStar(__webpack_require__(63), exports);
 tslib_1.__exportStar(__webpack_require__(64), exports);
 tslib_1.__exportStar(__webpack_require__(65), exports);
 tslib_1.__exportStar(__webpack_require__(66), exports);
+tslib_1.__exportStar(__webpack_require__(67), exports);
 
 
 /***/ }),
-/* 54 */
+/* 55 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.defaultAward = exports.awardSchema = void 0;
-const zod_1 = __webpack_require__(45);
-const shared_1 = __webpack_require__(47);
+const zod_1 = __webpack_require__(46);
+const shared_1 = __webpack_require__(48);
 // Schema
 exports.awardSchema = shared_1.itemSchema.extend({
     title: zod_1.z.string().min(1),
@@ -1336,14 +1932,14 @@ exports.defaultAward = {
 
 
 /***/ }),
-/* 55 */
+/* 56 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.defaultCertification = exports.certificationSchema = void 0;
-const zod_1 = __webpack_require__(45);
-const shared_1 = __webpack_require__(47);
+const zod_1 = __webpack_require__(46);
+const shared_1 = __webpack_require__(48);
 // Schema
 exports.certificationSchema = shared_1.itemSchema.extend({
     name: zod_1.z.string().min(1),
@@ -1364,14 +1960,14 @@ exports.defaultCertification = {
 
 
 /***/ }),
-/* 56 */
+/* 57 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.defaultCustomSection = exports.customSectionSchema = void 0;
-const zod_1 = __webpack_require__(45);
-const shared_1 = __webpack_require__(47);
+const zod_1 = __webpack_require__(46);
+const shared_1 = __webpack_require__(48);
 // Schema
 exports.customSectionSchema = shared_1.itemSchema.extend({
     name: zod_1.z.string(),
@@ -1396,14 +1992,14 @@ exports.defaultCustomSection = {
 
 
 /***/ }),
-/* 57 */
+/* 58 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.defaultEducation = exports.educationSchema = void 0;
-const zod_1 = __webpack_require__(45);
-const shared_1 = __webpack_require__(47);
+const zod_1 = __webpack_require__(46);
+const shared_1 = __webpack_require__(48);
 // Schema
 exports.educationSchema = shared_1.itemSchema.extend({
     institution: zod_1.z.string().min(1),
@@ -1429,14 +2025,14 @@ exports.defaultEducation = {
 
 
 /***/ }),
-/* 58 */
+/* 59 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.defaultExperience = exports.experienceSchema = void 0;
-const zod_1 = __webpack_require__(45);
-const shared_1 = __webpack_require__(47);
+const zod_1 = __webpack_require__(46);
+const shared_1 = __webpack_require__(48);
 // Schema
 exports.experienceSchema = shared_1.itemSchema.extend({
     company: zod_1.z.string().min(1),
@@ -1459,14 +2055,14 @@ exports.defaultExperience = {
 
 
 /***/ }),
-/* 59 */
+/* 60 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.defaultInterest = exports.interestSchema = void 0;
-const zod_1 = __webpack_require__(45);
-const shared_1 = __webpack_require__(47);
+const zod_1 = __webpack_require__(46);
+const shared_1 = __webpack_require__(48);
 // Schema
 exports.interestSchema = shared_1.itemSchema.extend({
     name: zod_1.z.string().min(1),
@@ -1481,14 +2077,14 @@ exports.defaultInterest = {
 
 
 /***/ }),
-/* 60 */
+/* 61 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.defaultLanguage = exports.languageSchema = void 0;
-const zod_1 = __webpack_require__(45);
-const shared_1 = __webpack_require__(47);
+const zod_1 = __webpack_require__(46);
+const shared_1 = __webpack_require__(48);
 // Schema
 exports.languageSchema = shared_1.itemSchema.extend({
     name: zod_1.z.string().min(1),
@@ -1505,14 +2101,14 @@ exports.defaultLanguage = {
 
 
 /***/ }),
-/* 61 */
+/* 62 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.defaultProfile = exports.profileSchema = void 0;
-const zod_1 = __webpack_require__(45);
-const shared_1 = __webpack_require__(47);
+const zod_1 = __webpack_require__(46);
+const shared_1 = __webpack_require__(48);
 // Schema
 exports.profileSchema = shared_1.itemSchema.extend({
     network: zod_1.z.string().min(1),
@@ -1533,14 +2129,14 @@ exports.defaultProfile = {
 
 
 /***/ }),
-/* 62 */
+/* 63 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.defaultProject = exports.projectSchema = void 0;
-const zod_1 = __webpack_require__(45);
-const shared_1 = __webpack_require__(47);
+const zod_1 = __webpack_require__(46);
+const shared_1 = __webpack_require__(48);
 // Schema
 exports.projectSchema = shared_1.itemSchema.extend({
     name: zod_1.z.string().min(1),
@@ -1563,14 +2159,14 @@ exports.defaultProject = {
 
 
 /***/ }),
-/* 63 */
+/* 64 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.defaultPublication = exports.publicationSchema = void 0;
-const zod_1 = __webpack_require__(45);
-const shared_1 = __webpack_require__(47);
+const zod_1 = __webpack_require__(46);
+const shared_1 = __webpack_require__(48);
 // Schema
 exports.publicationSchema = shared_1.itemSchema.extend({
     name: zod_1.z.string().min(1),
@@ -1591,14 +2187,14 @@ exports.defaultPublication = {
 
 
 /***/ }),
-/* 64 */
+/* 65 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.defaultReference = exports.referenceSchema = void 0;
-const zod_1 = __webpack_require__(45);
-const shared_1 = __webpack_require__(47);
+const zod_1 = __webpack_require__(46);
+const shared_1 = __webpack_require__(48);
 // Schema
 exports.referenceSchema = shared_1.itemSchema.extend({
     name: zod_1.z.string().min(1),
@@ -1617,14 +2213,14 @@ exports.defaultReference = {
 
 
 /***/ }),
-/* 65 */
+/* 66 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.defaultSkill = exports.skillSchema = void 0;
-const zod_1 = __webpack_require__(45);
-const shared_1 = __webpack_require__(47);
+const zod_1 = __webpack_require__(46);
+const shared_1 = __webpack_require__(48);
 // Schema
 exports.skillSchema = shared_1.itemSchema.extend({
     name: zod_1.z.string(),
@@ -1643,14 +2239,14 @@ exports.defaultSkill = {
 
 
 /***/ }),
-/* 66 */
+/* 67 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.defaultVolunteer = exports.volunteerSchema = void 0;
-const zod_1 = __webpack_require__(45);
-const shared_1 = __webpack_require__(47);
+const zod_1 = __webpack_require__(46);
+const shared_1 = __webpack_require__(48);
 // Schema
 exports.volunteerSchema = shared_1.itemSchema.extend({
     organization: zod_1.z.string().min(1),
@@ -1673,7 +2269,7 @@ exports.defaultVolunteer = {
 
 
 /***/ }),
-/* 67 */
+/* 68 */
 /***/ ((__unused_webpack_module, exports) => {
 
 
@@ -2002,25 +2598,25 @@ exports.sampleResume = {
 
 
 /***/ }),
-/* 68 */
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-const tslib_1 = __webpack_require__(1);
-tslib_1.__exportStar(__webpack_require__(69), exports);
-
-
-/***/ }),
 /* 69 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+const tslib_1 = __webpack_require__(1);
+tslib_1.__exportStar(__webpack_require__(70), exports);
+
+
+/***/ }),
+/* 70 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.SecretsDto = exports.secretsSchema = void 0;
-const schema_1 = __webpack_require__(44);
-const dto_1 = __webpack_require__(38);
-const z_1 = __webpack_require__(39);
+const schema_1 = __webpack_require__(45);
+const dto_1 = __webpack_require__(39);
+const z_1 = __webpack_require__(40);
 exports.secretsSchema = z_1.z.object({
     id: schema_1.idSchema,
     password: z_1.z.string().nullable(),
@@ -2038,33 +2634,18 @@ exports.SecretsDto = SecretsDto;
 
 
 /***/ }),
-/* 70 */
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.MessageDto = exports.messageSchema = void 0;
-const dto_1 = __webpack_require__(38);
-const z_1 = __webpack_require__(39);
-exports.messageSchema = z_1.z.object({ message: z_1.z.string() });
-class MessageDto extends (0, dto_1.createZodDto)(exports.messageSchema) {
-}
-exports.MessageDto = MessageDto;
-
-
-/***/ }),
 /* 71 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.AuthProvidersDto = void 0;
-const dto_1 = __webpack_require__(38);
-const z_1 = __webpack_require__(39);
-const authProvidersSchema = z_1.z.array(z_1.z.enum(["email", "github", "google"]));
-class AuthProvidersDto extends (0, dto_1.createZodDto)(authProvidersSchema) {
+exports.MessageDto = exports.messageSchema = void 0;
+const dto_1 = __webpack_require__(39);
+const z_1 = __webpack_require__(40);
+exports.messageSchema = z_1.z.object({ message: z_1.z.string() });
+class MessageDto extends (0, dto_1.createZodDto)(exports.messageSchema) {
 }
-exports.AuthProvidersDto = AuthProvidersDto;
+exports.MessageDto = MessageDto;
 
 
 /***/ }),
@@ -2073,10 +2654,25 @@ exports.AuthProvidersDto = AuthProvidersDto;
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.AuthProvidersDto = void 0;
+const dto_1 = __webpack_require__(39);
+const z_1 = __webpack_require__(40);
+const authProvidersSchema = z_1.z.array(z_1.z.enum(["email", "github", "google"]));
+class AuthProvidersDto extends (0, dto_1.createZodDto)(authProvidersSchema) {
+}
+exports.AuthProvidersDto = AuthProvidersDto;
+
+
+/***/ }),
+/* 73 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.RegisterDto = exports.registerSchema = void 0;
-const dto_1 = __webpack_require__(38);
-const z_1 = __webpack_require__(39);
-const user_1 = __webpack_require__(41);
+const dto_1 = __webpack_require__(39);
+const z_1 = __webpack_require__(40);
+const user_1 = __webpack_require__(42);
 exports.registerSchema = user_1.userSchema
     .pick({ name: true, email: true, username: true, locale: true })
     .extend({ password: z_1.z.password().min(6) });
@@ -2086,14 +2682,14 @@ exports.RegisterDto = RegisterDto;
 
 
 /***/ }),
-/* 73 */
+/* 74 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ResetPasswordDto = exports.resetPasswordSchema = void 0;
-const dto_1 = __webpack_require__(38);
-const z_1 = __webpack_require__(39);
+const dto_1 = __webpack_require__(39);
+const z_1 = __webpack_require__(40);
 exports.resetPasswordSchema = z_1.z.object({
     token: z_1.z.string(),
     password: z_1.z.password().min(6),
@@ -2104,15 +2700,15 @@ exports.ResetPasswordDto = ResetPasswordDto;
 
 
 /***/ }),
-/* 74 */
+/* 75 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AuthResponseDto = exports.authResponseSchema = void 0;
-const dto_1 = __webpack_require__(38);
-const z_1 = __webpack_require__(39);
-const user_1 = __webpack_require__(41);
+const dto_1 = __webpack_require__(39);
+const z_1 = __webpack_require__(40);
+const user_1 = __webpack_require__(42);
 exports.authResponseSchema = z_1.z.object({
     status: z_1.z.enum(["authenticated", "2fa_required"]),
     user: user_1.userSchema,
@@ -2123,14 +2719,14 @@ exports.AuthResponseDto = AuthResponseDto;
 
 
 /***/ }),
-/* 75 */
+/* 76 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.TwoFactorBackupDto = exports.twoFactorBackupSchema = exports.BackupCodesDto = exports.backupCodesSchema = exports.TwoFactorDto = exports.twoFactorSchema = void 0;
-const dto_1 = __webpack_require__(38);
-const z_1 = __webpack_require__(39);
+const dto_1 = __webpack_require__(39);
+const z_1 = __webpack_require__(40);
 exports.twoFactorSchema = z_1.z.object({
     code: z_1.z
         .string()
@@ -2155,14 +2751,14 @@ exports.TwoFactorBackupDto = TwoFactorBackupDto;
 
 
 /***/ }),
-/* 76 */
+/* 77 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.UpdatePasswordDto = exports.updatePasswordSchema = void 0;
-const dto_1 = __webpack_require__(38);
-const z_1 = __webpack_require__(39);
+const dto_1 = __webpack_require__(39);
+const z_1 = __webpack_require__(40);
 exports.updatePasswordSchema = z_1.z.object({
     password: z_1.z.string().min(6),
 });
@@ -2172,14 +2768,14 @@ exports.UpdatePasswordDto = UpdatePasswordDto;
 
 
 /***/ }),
-/* 77 */
+/* 78 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ContributorDto = exports.contributorSchema = void 0;
-const dto_1 = __webpack_require__(38);
-const z_1 = __webpack_require__(39);
+const dto_1 = __webpack_require__(39);
+const z_1 = __webpack_require__(40);
 exports.contributorSchema = z_1.z.object({
     id: z_1.z.number(),
     name: z_1.z.string(),
@@ -2192,30 +2788,30 @@ exports.ContributorDto = ContributorDto;
 
 
 /***/ }),
-/* 78 */
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-const tslib_1 = __webpack_require__(1);
-tslib_1.__exportStar(__webpack_require__(79), exports);
-tslib_1.__exportStar(__webpack_require__(101), exports);
-tslib_1.__exportStar(__webpack_require__(102), exports);
-tslib_1.__exportStar(__webpack_require__(103), exports);
-tslib_1.__exportStar(__webpack_require__(104), exports);
-tslib_1.__exportStar(__webpack_require__(105), exports);
-
-
-/***/ }),
 /* 79 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+const tslib_1 = __webpack_require__(1);
+tslib_1.__exportStar(__webpack_require__(80), exports);
+tslib_1.__exportStar(__webpack_require__(102), exports);
+tslib_1.__exportStar(__webpack_require__(103), exports);
+tslib_1.__exportStar(__webpack_require__(104), exports);
+tslib_1.__exportStar(__webpack_require__(105), exports);
+tslib_1.__exportStar(__webpack_require__(106), exports);
+
+
+/***/ }),
+/* 80 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.CreateResumeDto = exports.createResumeSchema = void 0;
-const utils_1 = __webpack_require__(80);
-const dto_1 = __webpack_require__(38);
-const z_1 = __webpack_require__(39);
+const utils_1 = __webpack_require__(81);
+const dto_1 = __webpack_require__(39);
+const z_1 = __webpack_require__(40);
 exports.createResumeSchema = z_1.z.object({
     title: z_1.z.string().min(1),
     slug: z_1.z.string().min(1).transform(utils_1.kebabCase),
@@ -2227,17 +2823,16 @@ exports.CreateResumeDto = CreateResumeDto;
 
 
 /***/ }),
-/* 80 */
+/* 81 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const tslib_1 = __webpack_require__(1);
-tslib_1.__exportStar(__webpack_require__(81), exports);
 tslib_1.__exportStar(__webpack_require__(82), exports);
 tslib_1.__exportStar(__webpack_require__(83), exports);
-tslib_1.__exportStar(__webpack_require__(85), exports);
-tslib_1.__exportStar(__webpack_require__(87), exports);
+tslib_1.__exportStar(__webpack_require__(84), exports);
+tslib_1.__exportStar(__webpack_require__(86), exports);
 tslib_1.__exportStar(__webpack_require__(88), exports);
 tslib_1.__exportStar(__webpack_require__(89), exports);
 tslib_1.__exportStar(__webpack_require__(90), exports);
@@ -2245,13 +2840,14 @@ tslib_1.__exportStar(__webpack_require__(91), exports);
 tslib_1.__exportStar(__webpack_require__(92), exports);
 tslib_1.__exportStar(__webpack_require__(93), exports);
 tslib_1.__exportStar(__webpack_require__(94), exports);
-tslib_1.__exportStar(__webpack_require__(96), exports);
-tslib_1.__exportStar(__webpack_require__(99), exports);
+tslib_1.__exportStar(__webpack_require__(95), exports);
+tslib_1.__exportStar(__webpack_require__(97), exports);
 tslib_1.__exportStar(__webpack_require__(100), exports);
+tslib_1.__exportStar(__webpack_require__(101), exports);
 
 
 /***/ }),
-/* 81 */
+/* 82 */
 /***/ ((__unused_webpack_module, exports) => {
 
 
@@ -2301,7 +2897,7 @@ exports.moveItemInLayout = moveItemInLayout;
 
 
 /***/ }),
-/* 82 */
+/* 83 */
 /***/ ((__unused_webpack_module, exports) => {
 
 
@@ -2320,14 +2916,14 @@ exports.hexToRgb = hexToRgb;
 
 
 /***/ }),
-/* 83 */
+/* 84 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.parseArrayLikeCSVEntry = exports.parseCSV = void 0;
 const tslib_1 = __webpack_require__(1);
-const papaparse_1 = tslib_1.__importDefault(__webpack_require__(84));
+const papaparse_1 = tslib_1.__importDefault(__webpack_require__(85));
 const parseCSV = async (string) => {
     return new Promise((resolve, reject) => {
         papaparse_1.default.parse(string, {
@@ -2349,20 +2945,20 @@ exports.parseArrayLikeCSVEntry = parseArrayLikeCSVEntry;
 
 
 /***/ }),
-/* 84 */
+/* 85 */
 /***/ ((module) => {
 
 module.exports = require("papaparse");
 
 /***/ }),
-/* 85 */
+/* 86 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.deepSearchAndParseDates = exports.sortByDate = void 0;
 const tslib_1 = __webpack_require__(1);
-const dayjs_1 = tslib_1.__importDefault(__webpack_require__(86));
+const dayjs_1 = tslib_1.__importDefault(__webpack_require__(87));
 const sortByDate = (a, b, key, desc = true) => {
     if (!a[key] || !b[key])
         return 0;
@@ -2403,13 +2999,13 @@ exports.deepSearchAndParseDates = deepSearchAndParseDates;
 
 
 /***/ }),
-/* 86 */
+/* 87 */
 /***/ ((module) => {
 
 module.exports = require("dayjs");
 
 /***/ }),
-/* 87 */
+/* 88 */
 /***/ ((__unused_webpack_module, exports) => {
 
 
@@ -2439,7 +3035,7 @@ var ErrorMessage;
 
 
 /***/ }),
-/* 88 */
+/* 89 */
 /***/ ((__unused_webpack_module, exports) => {
 
 
@@ -10881,7 +11477,7 @@ exports.getFontUrls = getFontUrls;
 
 
 /***/ }),
-/* 89 */
+/* 90 */
 /***/ ((__unused_webpack_module, exports) => {
 
 
@@ -11168,7 +11764,7 @@ exports.languages = [
 
 
 /***/ }),
-/* 90 */
+/* 91 */
 /***/ ((__unused_webpack_module, exports) => {
 
 
@@ -11183,7 +11779,7 @@ exports.linearTransform = linearTransform;
 
 
 /***/ }),
-/* 91 */
+/* 92 */
 /***/ ((__unused_webpack_module, exports) => {
 
 
@@ -11198,7 +11794,7 @@ exports.exclude = exclude;
 
 
 /***/ }),
-/* 92 */
+/* 93 */
 /***/ ((__unused_webpack_module, exports) => {
 
 
@@ -11217,7 +11813,7 @@ exports.pageSizeMap = {
 
 
 /***/ }),
-/* 93 */
+/* 94 */
 /***/ ((__unused_webpack_module, exports) => {
 
 
@@ -11228,13 +11824,13 @@ exports.delay = delay;
 
 
 /***/ }),
-/* 94 */
+/* 95 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.parseLayoutLocator = exports.processUsername = exports.generateRandomName = exports.kebabCase = exports.extractUrl = exports.isEmptyString = exports.isUrl = exports.getInitials = void 0;
-const unique_names_generator_1 = __webpack_require__(95);
+const unique_names_generator_1 = __webpack_require__(96);
 const getInitials = (name) => {
     const regex = new RegExp(/(\p{L}{1})\p{L}+/, "gu");
     const initials = [...name.matchAll(regex)] || [];
@@ -11295,20 +11891,20 @@ exports.parseLayoutLocator = parseLayoutLocator;
 
 
 /***/ }),
-/* 95 */
+/* 96 */
 /***/ ((module) => {
 
 module.exports = require("unique-names-generator");
 
 /***/ }),
-/* 96 */
+/* 97 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.cn = exports.breakpoints = void 0;
-const clsx_1 = __webpack_require__(97);
-const tailwind_merge_1 = __webpack_require__(98);
+const clsx_1 = __webpack_require__(98);
+const tailwind_merge_1 = __webpack_require__(99);
 exports.breakpoints = {
     xs: 0,
     sm: 640,
@@ -11322,19 +11918,19 @@ exports.cn = cn;
 
 
 /***/ }),
-/* 97 */
+/* 98 */
 /***/ ((module) => {
 
 module.exports = require("clsx");
 
 /***/ }),
-/* 98 */
+/* 99 */
 /***/ ((module) => {
 
 module.exports = require("tailwind-merge");
 
 /***/ }),
-/* 99 */
+/* 100 */
 /***/ ((__unused_webpack_module, exports) => {
 
 
@@ -11357,7 +11953,7 @@ exports.templatesList = [
 
 
 /***/ }),
-/* 100 */
+/* 101 */
 /***/ ((__unused_webpack_module, exports) => {
 
 
@@ -11365,15 +11961,15 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 
 
 /***/ }),
-/* 101 */
+/* 102 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.DeleteResumeDto = exports.deleteResumeSchema = void 0;
-const schema_1 = __webpack_require__(44);
-const dto_1 = __webpack_require__(38);
-const z_1 = __webpack_require__(39);
+const schema_1 = __webpack_require__(45);
+const dto_1 = __webpack_require__(39);
+const z_1 = __webpack_require__(40);
 exports.deleteResumeSchema = z_1.z.object({
     id: schema_1.idSchema,
 });
@@ -11383,16 +11979,16 @@ exports.DeleteResumeDto = DeleteResumeDto;
 
 
 /***/ }),
-/* 102 */
+/* 103 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ImportResumeDto = exports.importResumeSchema = void 0;
-const schema_1 = __webpack_require__(44);
-const utils_1 = __webpack_require__(80);
-const dto_1 = __webpack_require__(38);
-const z_1 = __webpack_require__(39);
+const schema_1 = __webpack_require__(45);
+const utils_1 = __webpack_require__(81);
+const dto_1 = __webpack_require__(39);
+const z_1 = __webpack_require__(40);
 exports.importResumeSchema = z_1.z.object({
     title: z_1.z.string().optional(),
     slug: z_1.z.string().min(1).transform(utils_1.kebabCase).optional(),
@@ -11405,16 +12001,16 @@ exports.ImportResumeDto = ImportResumeDto;
 
 
 /***/ }),
-/* 103 */
+/* 104 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ResumeDto = exports.resumeSchema = void 0;
-const schema_1 = __webpack_require__(44);
-const dto_1 = __webpack_require__(38);
-const z_1 = __webpack_require__(39);
-const user_1 = __webpack_require__(41);
+const schema_1 = __webpack_require__(45);
+const dto_1 = __webpack_require__(39);
+const z_1 = __webpack_require__(40);
+const user_1 = __webpack_require__(42);
 exports.resumeSchema = z_1.z.object({
     id: schema_1.idSchema,
     title: z_1.z.string(),
@@ -11433,33 +12029,18 @@ exports.ResumeDto = ResumeDto;
 
 
 /***/ }),
-/* 104 */
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.UpdateResumeDto = exports.updateResumeSchema = void 0;
-const dto_1 = __webpack_require__(38);
-const resume_1 = __webpack_require__(103);
-exports.updateResumeSchema = resume_1.resumeSchema.partial();
-class UpdateResumeDto extends (0, dto_1.createZodDto)(exports.updateResumeSchema) {
-}
-exports.UpdateResumeDto = UpdateResumeDto;
-
-
-/***/ }),
 /* 105 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.UrlDto = exports.urlSchema = void 0;
-const dto_1 = __webpack_require__(38);
-const z_1 = __webpack_require__(39);
-exports.urlSchema = z_1.z.object({ url: z_1.z.string().url() });
-class UrlDto extends (0, dto_1.createZodDto)(exports.urlSchema) {
+exports.UpdateResumeDto = exports.updateResumeSchema = void 0;
+const dto_1 = __webpack_require__(39);
+const resume_1 = __webpack_require__(104);
+exports.updateResumeSchema = resume_1.resumeSchema.partial();
+class UpdateResumeDto extends (0, dto_1.createZodDto)(exports.updateResumeSchema) {
 }
-exports.UrlDto = UrlDto;
+exports.UpdateResumeDto = UpdateResumeDto;
 
 
 /***/ }),
@@ -11468,9 +12049,24 @@ exports.UrlDto = UrlDto;
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.UrlDto = exports.urlSchema = void 0;
+const dto_1 = __webpack_require__(39);
+const z_1 = __webpack_require__(40);
+exports.urlSchema = z_1.z.object({ url: z_1.z.string().url() });
+class UrlDto extends (0, dto_1.createZodDto)(exports.urlSchema) {
+}
+exports.UrlDto = UrlDto;
+
+
+/***/ }),
+/* 107 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.StatisticsDto = exports.statisticsSchema = void 0;
-const dto_1 = __webpack_require__(38);
-const z_1 = __webpack_require__(39);
+const dto_1 = __webpack_require__(39);
+const z_1 = __webpack_require__(40);
 exports.statisticsSchema = z_1.z.object({
     views: z_1.z.number().int().default(0),
     downloads: z_1.z.number().int().default(0),
@@ -11481,7 +12077,7 @@ exports.StatisticsDto = StatisticsDto;
 
 
 /***/ }),
-/* 107 */
+/* 108 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -11492,14 +12088,14 @@ const tslib_1 = __webpack_require__(1);
 const common_1 = __webpack_require__(2);
 const config_1 = __webpack_require__(3);
 const jwt_1 = __webpack_require__(16);
-const library_1 = __webpack_require__(34);
-const utils_1 = __webpack_require__(80);
-const bcryptjs = tslib_1.__importStar(__webpack_require__(108));
-const crypto_1 = __webpack_require__(109);
-const otplib_1 = __webpack_require__(110);
+const library_1 = __webpack_require__(35);
+const utils_1 = __webpack_require__(81);
+const bcryptjs = tslib_1.__importStar(__webpack_require__(109));
+const crypto_1 = __webpack_require__(110);
+const otplib_1 = __webpack_require__(111);
 const mail_service_1 = __webpack_require__(21);
-const user_service_1 = __webpack_require__(111);
-const utils_service_1 = __webpack_require__(112);
+const user_service_1 = __webpack_require__(112);
+const utils_service_1 = __webpack_require__(113);
 let AuthService = class AuthService {
     constructor(configService, userService, mailService, jwtService, utils) {
         this.configService = configService;
@@ -11575,8 +12171,11 @@ let AuthService = class AuthService {
                 emailVerified: false, // Set to true if you don't want to verify user's email
                 secrets: { create: { password: hashedPassword } },
             });
-            // Do not `await` this function, otherwise the user will have to wait for the email to be sent before the response is returned
-            this.sendVerificationEmail(user.email);
+            // Send verification email (non-blocking - don't await)
+            // Registration should succeed even if email sending fails
+            this.sendVerificationEmail(user.email).catch((error) => {
+                common_1.Logger.error(`Failed to send verification email during registration: ${error instanceof Error ? error.message : String(error)}`, "AuthService#register");
+            });
             return user;
         }
         catch (error) {
@@ -11645,33 +12244,127 @@ let AuthService = class AuthService {
         return providers;
     }
     // Email Verification Flows
+    /**
+     * Generate a verification token (20-byte hex string)
+     */
+    generateVerificationToken() {
+        return (0, crypto_1.randomBytes)(20).toString("hex");
+    }
+    /**
+     * Get token expiration date (24 hours from now)
+     */
+    getTokenExpiration() {
+        return new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+    }
+    /**
+     * Send verification email to user
+     * Non-blocking: errors are logged but don't throw
+     */
     async sendVerificationEmail(email) {
         try {
-            const token = this.generateToken("verification");
-            // Set the verification token in the database
+            // Find user to get their name
+            const user = await this.userService.findOneByIdentifier(email);
+            if (!user) {
+                common_1.Logger.warn(`User not found for email: ${email}`, "AuthService#sendVerificationEmail");
+                return;
+            }
+            // Generate verification token (20-byte hex)
+            const token = this.generateVerificationToken();
+            const expiration = this.getTokenExpiration();
+            // Set the verification token and expiration in the database
             await this.userService.updateByEmail(email, {
-                secrets: { update: { verificationToken: token } },
+                secrets: {
+                    update: {
+                        verificationToken: token,
+                        verificationTokenExpire: expiration,
+                    },
+                },
             });
-            const url = `http://internvista.com/auth/verify-email?token=${token}`;
-            const subject = "Verify your email address";
-            const text = `Please verify your email address by clicking on the link below:\n\n${url}`;
-            await this.mailService.sendEmail({ to: email, subject, text });
+            // Send verification email (non-blocking)
+            // Don't await to avoid blocking registration flow
+            this.mailService
+                .sendVerificationEmail(email, user.name, token)
+                .catch((error) => {
+                common_1.Logger.error(`Failed to send verification email to ${email}: ${error instanceof Error ? error.message : String(error)}`, "AuthService#sendVerificationEmail");
+                // Don't throw - registration should succeed even if email fails
+            });
         }
         catch (error) {
-            common_1.Logger.error(error);
-            throw new common_1.InternalServerErrorException(error);
+            common_1.Logger.error(`Error in sendVerificationEmail for ${email}: ${error instanceof Error ? error.message : String(error)}`, "AuthService#sendVerificationEmail");
+            // Don't throw - allow registration to continue even if email setup fails
         }
     }
-    async verifyEmail(id, token) {
-        const user = await this.userService.findOneById(id);
+    /**
+     * Verify email using token
+     * Checks token validity and expiration
+     */
+    async verifyEmail(token) {
+        if (!token) {
+            throw new common_1.BadRequestException(utils_1.ErrorMessage.InvalidVerificationToken);
+        }
+        // Find user by verification token
+        const user = await this.userService.findByVerificationToken(token);
+        if (!user) {
+            throw new common_1.BadRequestException(utils_1.ErrorMessage.InvalidVerificationToken);
+        }
         const storedToken = user.secrets?.verificationToken;
+        const tokenExpire = user.secrets?.verificationTokenExpire;
+        // Validate token matches
         if (!storedToken || storedToken !== token) {
             throw new common_1.BadRequestException(utils_1.ErrorMessage.InvalidVerificationToken);
         }
+        // Check if token has expired
+        if (!tokenExpire || new Date() > tokenExpire) {
+            throw new common_1.BadRequestException("Verification token has expired. Please request a new verification email.");
+        }
+        // Verify email and clear token
         await this.userService.updateByEmail(user.email, {
             emailVerified: true,
-            secrets: { update: { verificationToken: null } },
+            secrets: {
+                update: {
+                    verificationToken: null,
+                    verificationTokenExpire: null,
+                },
+            },
         });
+        // Send welcome email (non-blocking)
+        this.mailService
+            .sendWelcomeEmail(user.email, user.name)
+            .catch((error) => {
+            common_1.Logger.error(`Failed to send welcome email to ${user.email}: ${error instanceof Error ? error.message : String(error)}`, "AuthService#verifyEmail");
+            // Don't throw - verification should succeed even if welcome email fails
+        });
+    }
+    /**
+     * Resend verification email
+     * Generates new token and expiration
+     */
+    async resendVerificationEmail(email) {
+        // Find user by email
+        const user = await this.userService.findOneByIdentifier(email);
+        if (!user) {
+            // Don't reveal if user exists or not for security
+            common_1.Logger.warn(`Resend verification requested for non-existent email: ${email}`, "AuthService#resendVerificationEmail");
+            return; // Silently succeed to prevent email enumeration
+        }
+        // Check if already verified
+        if (user.emailVerified) {
+            throw new common_1.BadRequestException(utils_1.ErrorMessage.EmailAlreadyVerified);
+        }
+        // Generate new verification token and expiration
+        const token = this.generateVerificationToken();
+        const expiration = this.getTokenExpiration();
+        // Update token in database
+        await this.userService.updateByEmail(email, {
+            secrets: {
+                update: {
+                    verificationToken: token,
+                    verificationTokenExpire: expiration,
+                },
+            },
+        });
+        // Send verification email
+        await this.mailService.sendVerificationEmail(email, user.name, token);
     }
     // Two-Factor Authentication Flows
     async setup2FASecret(email) {
@@ -11764,25 +12457,25 @@ exports.AuthService = AuthService = tslib_1.__decorate([
 
 
 /***/ }),
-/* 108 */
+/* 109 */
 /***/ ((module) => {
 
 module.exports = require("bcryptjs");
 
 /***/ }),
-/* 109 */
+/* 110 */
 /***/ ((module) => {
 
 module.exports = require("crypto");
 
 /***/ }),
-/* 110 */
+/* 111 */
 /***/ ((module) => {
 
 module.exports = require("otplib");
 
 /***/ }),
-/* 111 */
+/* 112 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -11791,10 +12484,10 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.UserService = void 0;
 const tslib_1 = __webpack_require__(1);
 const common_1 = __webpack_require__(2);
-const utils_1 = __webpack_require__(80);
-const nestjs_redis_1 = __webpack_require__(31);
+const utils_1 = __webpack_require__(81);
+const nestjs_redis_1 = __webpack_require__(32);
 const nestjs_prisma_1 = __webpack_require__(9);
-const storage_service_1 = __webpack_require__(29);
+const storage_service_1 = __webpack_require__(30);
 let UserService = class UserService {
     constructor(prisma, storageService, redisService) {
         this.prisma = prisma;
@@ -11843,6 +12536,19 @@ let UserService = class UserService {
     async updateByResetToken(resetToken, data) {
         await this.prisma.secrets.update({ where: { resetToken }, data });
     }
+    async findByVerificationToken(verificationToken) {
+        const secrets = await this.prisma.secrets.findFirst({
+            where: { verificationToken },
+            include: { user: true },
+        });
+        if (!secrets || !secrets.user) {
+            return null;
+        }
+        return {
+            ...secrets.user,
+            secrets,
+        };
+    }
     async deleteOneById(id) {
         await Promise.all([this.redis.del(`user:${id}:*`), this.storageService.deleteFolder(id)]);
         return await this.prisma.user.delete({ where: { id } });
@@ -11856,7 +12562,7 @@ exports.UserService = UserService = tslib_1.__decorate([
 
 
 /***/ }),
-/* 112 */
+/* 113 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -11867,7 +12573,7 @@ exports.UtilsService = void 0;
 const tslib_1 = __webpack_require__(1);
 const common_1 = __webpack_require__(2);
 const config_1 = __webpack_require__(3);
-const nestjs_redis_1 = __webpack_require__(31);
+const nestjs_redis_1 = __webpack_require__(32);
 let UtilsService = UtilsService_1 = class UtilsService {
     constructor(redisService, configService) {
         this.redisService = redisService;
@@ -11917,7 +12623,7 @@ exports.UtilsService = UtilsService = UtilsService_1 = tslib_1.__decorate([
 
 
 /***/ }),
-/* 113 */
+/* 114 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -11927,20 +12633,20 @@ exports.AuthController = void 0;
 const tslib_1 = __webpack_require__(1);
 const common_1 = __webpack_require__(2);
 const swagger_1 = __webpack_require__(5);
-const dto_1 = __webpack_require__(35);
+const dto_1 = __webpack_require__(36);
 const mailer_1 = __webpack_require__(19);
-const utils_1 = __webpack_require__(80);
-const user_decorator_1 = __webpack_require__(28);
-const utils_service_1 = __webpack_require__(112);
-const auth_service_1 = __webpack_require__(107);
-const github_guard_1 = __webpack_require__(114);
-const google_guard_1 = __webpack_require__(115);
-const jwt_guard_1 = __webpack_require__(116);
-const local_guard_1 = __webpack_require__(117);
-const refresh_guard_1 = __webpack_require__(118);
-const two_factor_guard_1 = __webpack_require__(27);
-const cookie_1 = __webpack_require__(119);
-const payload_1 = __webpack_require__(120);
+const utils_1 = __webpack_require__(81);
+const user_decorator_1 = __webpack_require__(29);
+const utils_service_1 = __webpack_require__(113);
+const auth_service_1 = __webpack_require__(108);
+const github_guard_1 = __webpack_require__(115);
+const google_guard_1 = __webpack_require__(116);
+const jwt_guard_1 = __webpack_require__(117);
+const local_guard_1 = __webpack_require__(118);
+const refresh_guard_1 = __webpack_require__(119);
+const two_factor_guard_1 = __webpack_require__(28);
+const cookie_1 = __webpack_require__(120);
+const payload_1 = __webpack_require__(121);
 const mail_service_1 = __webpack_require__(21);
 let AuthController = class AuthController {
     constructor(authService, utils, mailservice, mailService) {
@@ -12063,23 +12769,80 @@ let AuthController = class AuthController {
         }
     }
     // Email Verification Flows
-    async verifyEmail(id, emailVerified, token) {
-        if (!token)
+    /**
+     * GET /api/auth/verify-email/:token
+     * Verify email using token from URL path
+     */
+    async verifyEmailGet(token) {
+        if (!token) {
             throw new common_1.BadRequestException(utils_1.ErrorMessage.InvalidVerificationToken);
-        if (emailVerified) {
-            throw new common_1.BadRequestException(utils_1.ErrorMessage.EmailAlreadyVerified);
         }
-        await this.authService.verifyEmail(id, token);
-        return { message: "Your email has been successfully verified." };
+        try {
+            await this.authService.verifyEmail(token);
+            return { message: "Your email has been successfully verified." };
+        }
+        catch (error) {
+            if (error instanceof common_1.BadRequestException) {
+                throw error;
+            }
+            common_1.Logger.error(error, "Failed to verify email");
+            throw new common_1.BadRequestException(utils_1.ErrorMessage.InvalidVerificationToken);
+        }
     }
-    async resendVerificationEmail(email, emailVerified) {
-        if (emailVerified) {
+    /**
+     * POST /api/auth/verify-email
+     * Alternative POST endpoint for email verification (for compatibility)
+     */
+    async verifyEmailPost(token) {
+        if (!token) {
+            throw new common_1.BadRequestException(utils_1.ErrorMessage.InvalidVerificationToken);
+        }
+        try {
+            await this.authService.verifyEmail(token);
+            return { message: "Your email has been successfully verified." };
+        }
+        catch (error) {
+            if (error instanceof common_1.BadRequestException) {
+                throw error;
+            }
+            common_1.Logger.error(error, "Failed to verify email");
+            throw new common_1.BadRequestException(utils_1.ErrorMessage.InvalidVerificationToken);
+        }
+    }
+    /**
+     * POST /api/auth/resend-verification
+     * Resend verification email
+     * Can be called by authenticated users or with email in body
+     */
+    async resendVerificationEmail(email, emailVerified, body) {
+        // Get email from authenticated user or request body
+        const userEmail = email || body?.email;
+        if (!userEmail) {
+            throw new common_1.BadRequestException("Email is required. Please provide your email address.");
+        }
+        // If user is authenticated, check if already verified
+        if (email && emailVerified) {
             throw new common_1.BadRequestException(utils_1.ErrorMessage.EmailAlreadyVerified);
         }
-        await this.authService.sendVerificationEmail(email);
-        return {
-            message: "You should have received a new email with a link to verify your email address.",
-        };
+        try {
+            await this.authService.resendVerificationEmail(userEmail);
+            return {
+                message: "A verification email has been sent to your email address. Please check your inbox.",
+            };
+        }
+        catch (error) {
+            // Log the full error for debugging
+            common_1.Logger.error(error, "Failed to resend verification email");
+            // If it's a known error (like already verified), throw it
+            if (error instanceof common_1.BadRequestException) {
+                throw error;
+            }
+            // Return a generic error message that doesn't reveal too much
+            // Don't reveal if email exists or not for security
+            return {
+                message: "If an account exists with this email, a verification email has been sent.",
+            };
+        }
     }
 };
 exports.AuthController = AuthController;
@@ -12246,23 +13009,29 @@ tslib_1.__decorate([
 ], AuthController.prototype, "resetPassword", null);
 tslib_1.__decorate([
     (0, swagger_1.ApiTags)("Email Verification"),
-    (0, common_1.Post)("verify-email"),
-    (0, common_1.UseGuards)(two_factor_guard_1.TwoFactorGuard),
-    tslib_1.__param(0, (0, user_decorator_1.User)("id")),
-    tslib_1.__param(1, (0, user_decorator_1.User)("emailVerified")),
-    tslib_1.__param(2, (0, common_1.Query)("token")),
+    (0, common_1.Get)("verify-email/:token"),
+    tslib_1.__param(0, (0, common_1.Param)("token")),
     tslib_1.__metadata("design:type", Function),
-    tslib_1.__metadata("design:paramtypes", [String, Boolean, String]),
+    tslib_1.__metadata("design:paramtypes", [String]),
     tslib_1.__metadata("design:returntype", Promise)
-], AuthController.prototype, "verifyEmail", null);
+], AuthController.prototype, "verifyEmailGet", null);
 tslib_1.__decorate([
     (0, swagger_1.ApiTags)("Email Verification"),
-    (0, common_1.Post)("verify-email/resend"),
-    (0, common_1.UseGuards)(two_factor_guard_1.TwoFactorGuard),
+    (0, common_1.Post)("verify-email"),
+    tslib_1.__param(0, (0, common_1.Query)("token")),
+    tslib_1.__metadata("design:type", Function),
+    tslib_1.__metadata("design:paramtypes", [String]),
+    tslib_1.__metadata("design:returntype", Promise)
+], AuthController.prototype, "verifyEmailPost", null);
+tslib_1.__decorate([
+    (0, swagger_1.ApiTags)("Email Verification"),
+    (0, common_1.HttpCode)(200),
+    (0, common_1.Post)("resend-verification"),
     tslib_1.__param(0, (0, user_decorator_1.User)("email")),
     tslib_1.__param(1, (0, user_decorator_1.User)("emailVerified")),
+    tslib_1.__param(2, (0, common_1.Body)()),
     tslib_1.__metadata("design:type", Function),
-    tslib_1.__metadata("design:paramtypes", [String, Boolean]),
+    tslib_1.__metadata("design:paramtypes", [String, Boolean, Object]),
     tslib_1.__metadata("design:returntype", Promise)
 ], AuthController.prototype, "resendVerificationEmail", null);
 exports.AuthController = AuthController = tslib_1.__decorate([
@@ -12273,7 +13042,7 @@ exports.AuthController = AuthController = tslib_1.__decorate([
 
 
 /***/ }),
-/* 114 */
+/* 115 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -12291,7 +13060,7 @@ exports.GitHubGuard = GitHubGuard = tslib_1.__decorate([
 
 
 /***/ }),
-/* 115 */
+/* 116 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -12309,7 +13078,7 @@ exports.GoogleGuard = GoogleGuard = tslib_1.__decorate([
 
 
 /***/ }),
-/* 116 */
+/* 117 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -12327,7 +13096,7 @@ exports.JwtGuard = JwtGuard = tslib_1.__decorate([
 
 
 /***/ }),
-/* 117 */
+/* 118 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -12345,7 +13114,7 @@ exports.LocalGuard = LocalGuard = tslib_1.__decorate([
 
 
 /***/ }),
-/* 118 */
+/* 119 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -12363,7 +13132,7 @@ exports.RefreshGuard = RefreshGuard = tslib_1.__decorate([
 
 
 /***/ }),
-/* 119 */
+/* 120 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -12395,14 +13164,14 @@ exports.getCookieOptions = getCookieOptions;
 
 
 /***/ }),
-/* 120 */
+/* 121 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.payloadSchema = void 0;
-const schema_1 = __webpack_require__(44);
-const z_1 = __webpack_require__(39);
+const schema_1 = __webpack_require__(45);
+const z_1 = __webpack_require__(40);
 exports.payloadSchema = z_1.z.object({
     id: schema_1.idSchema,
     isTwoFactorAuth: z_1.z.boolean().optional(),
@@ -12410,7 +13179,7 @@ exports.payloadSchema = z_1.z.object({
 
 
 /***/ }),
-/* 121 */
+/* 122 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -12419,7 +13188,7 @@ exports.DummyStrategy = void 0;
 const tslib_1 = __webpack_require__(1);
 const common_1 = __webpack_require__(2);
 const passport_1 = __webpack_require__(17);
-const passport_2 = __webpack_require__(122);
+const passport_2 = __webpack_require__(123);
 let DummyStrategy = class DummyStrategy extends (0, passport_1.PassportStrategy)(passport_2.Strategy, "dummy") {
     constructor() {
         super();
@@ -12436,13 +13205,13 @@ exports.DummyStrategy = DummyStrategy = tslib_1.__decorate([
 
 
 /***/ }),
-/* 122 */
+/* 123 */
 /***/ ((module) => {
 
 module.exports = require("passport");
 
 /***/ }),
-/* 123 */
+/* 124 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -12452,10 +13221,10 @@ exports.GitHubStrategy = void 0;
 const tslib_1 = __webpack_require__(1);
 const common_1 = __webpack_require__(2);
 const passport_1 = __webpack_require__(17);
-const utils_1 = __webpack_require__(80);
-const utils_2 = __webpack_require__(80);
-const passport_github2_1 = __webpack_require__(124);
-const user_service_1 = __webpack_require__(111);
+const utils_1 = __webpack_require__(81);
+const utils_2 = __webpack_require__(81);
+const passport_github2_1 = __webpack_require__(125);
+const user_service_1 = __webpack_require__(112);
 let GitHubStrategy = class GitHubStrategy extends (0, passport_1.PassportStrategy)(passport_github2_1.Strategy, "github") {
     constructor(clientID, clientSecret, callbackURL, userService) {
         super({ clientID, clientSecret, callbackURL, scope: ["user:email"] });
@@ -12505,13 +13274,13 @@ exports.GitHubStrategy = GitHubStrategy = tslib_1.__decorate([
 
 
 /***/ }),
-/* 124 */
+/* 125 */
 /***/ ((module) => {
 
 module.exports = require("passport-github2");
 
 /***/ }),
-/* 125 */
+/* 126 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -12521,10 +13290,10 @@ exports.GoogleStrategy = void 0;
 const tslib_1 = __webpack_require__(1);
 const common_1 = __webpack_require__(2);
 const passport_1 = __webpack_require__(17);
-const utils_1 = __webpack_require__(80);
-const utils_2 = __webpack_require__(80);
-const passport_google_oauth20_1 = __webpack_require__(126);
-const user_service_1 = __webpack_require__(111);
+const utils_1 = __webpack_require__(81);
+const utils_2 = __webpack_require__(81);
+const passport_google_oauth20_1 = __webpack_require__(127);
+const user_service_1 = __webpack_require__(112);
 let GoogleStrategy = class GoogleStrategy extends (0, passport_1.PassportStrategy)(passport_google_oauth20_1.Strategy, "google") {
     constructor(clientID, clientSecret, callbackURL, userService) {
         super({ clientID, clientSecret, callbackURL, scope: ["email", "profile"] });
@@ -12574,13 +13343,13 @@ exports.GoogleStrategy = GoogleStrategy = tslib_1.__decorate([
 
 
 /***/ }),
-/* 126 */
+/* 127 */
 /***/ ((module) => {
 
 module.exports = require("passport-google-oauth20");
 
 /***/ }),
-/* 127 */
+/* 128 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -12591,8 +13360,8 @@ const tslib_1 = __webpack_require__(1);
 const common_1 = __webpack_require__(2);
 const config_1 = __webpack_require__(3);
 const passport_1 = __webpack_require__(17);
-const passport_jwt_1 = __webpack_require__(128);
-const user_service_1 = __webpack_require__(111);
+const passport_jwt_1 = __webpack_require__(129);
+const user_service_1 = __webpack_require__(112);
 let JwtStrategy = class JwtStrategy extends (0, passport_1.PassportStrategy)(passport_jwt_1.Strategy, "jwt") {
     constructor(configService, userService) {
         const extractors = [(request) => request?.cookies?.Authentication];
@@ -12616,13 +13385,13 @@ exports.JwtStrategy = JwtStrategy = tslib_1.__decorate([
 
 
 /***/ }),
-/* 128 */
+/* 129 */
 /***/ ((module) => {
 
 module.exports = require("passport-jwt");
 
 /***/ }),
-/* 129 */
+/* 130 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -12632,9 +13401,9 @@ exports.LocalStrategy = void 0;
 const tslib_1 = __webpack_require__(1);
 const common_1 = __webpack_require__(2);
 const passport_1 = __webpack_require__(17);
-const utils_1 = __webpack_require__(80);
-const passport_local_1 = __webpack_require__(130);
-const auth_service_1 = __webpack_require__(107);
+const utils_1 = __webpack_require__(81);
+const passport_local_1 = __webpack_require__(131);
+const auth_service_1 = __webpack_require__(108);
 let LocalStrategy = class LocalStrategy extends (0, passport_1.PassportStrategy)(passport_local_1.Strategy, "local") {
     constructor(authService) {
         super({ usernameField: "identifier" });
@@ -12657,13 +13426,13 @@ exports.LocalStrategy = LocalStrategy = tslib_1.__decorate([
 
 
 /***/ }),
-/* 130 */
+/* 131 */
 /***/ ((module) => {
 
 module.exports = require("passport-local");
 
 /***/ }),
-/* 131 */
+/* 132 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -12674,8 +13443,8 @@ const tslib_1 = __webpack_require__(1);
 const common_1 = __webpack_require__(2);
 const config_1 = __webpack_require__(3);
 const passport_1 = __webpack_require__(17);
-const passport_jwt_1 = __webpack_require__(128);
-const auth_service_1 = __webpack_require__(107);
+const passport_jwt_1 = __webpack_require__(129);
+const auth_service_1 = __webpack_require__(108);
 let RefreshStrategy = class RefreshStrategy extends (0, passport_1.PassportStrategy)(passport_jwt_1.Strategy, "refresh") {
     constructor(configService, authService) {
         const extractors = [(request) => request?.cookies?.Refresh];
@@ -12701,7 +13470,7 @@ exports.RefreshStrategy = RefreshStrategy = tslib_1.__decorate([
 
 
 /***/ }),
-/* 132 */
+/* 133 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -12712,8 +13481,8 @@ const tslib_1 = __webpack_require__(1);
 const common_1 = __webpack_require__(2);
 const config_1 = __webpack_require__(3);
 const passport_1 = __webpack_require__(17);
-const passport_jwt_1 = __webpack_require__(128);
-const user_service_1 = __webpack_require__(111);
+const passport_jwt_1 = __webpack_require__(129);
+const user_service_1 = __webpack_require__(112);
 let TwoFactorStrategy = class TwoFactorStrategy extends (0, passport_1.PassportStrategy)(passport_jwt_1.Strategy, "two-factor") {
     constructor(configService, userService) {
         const extractors = [(request) => request?.cookies?.Authentication];
@@ -12742,7 +13511,7 @@ exports.TwoFactorStrategy = TwoFactorStrategy = tslib_1.__decorate([
 
 
 /***/ }),
-/* 133 */
+/* 134 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -12751,7 +13520,7 @@ exports.CacheModule = void 0;
 const tslib_1 = __webpack_require__(1);
 const common_1 = __webpack_require__(2);
 const config_1 = __webpack_require__(3);
-const nestjs_redis_1 = __webpack_require__(31);
+const nestjs_redis_1 = __webpack_require__(32);
 let CacheModule = class CacheModule {
 };
 exports.CacheModule = CacheModule;
@@ -12770,7 +13539,7 @@ exports.CacheModule = CacheModule = tslib_1.__decorate([
 
 
 /***/ }),
-/* 134 */
+/* 135 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -12779,7 +13548,8 @@ exports.ConfigModule = void 0;
 const tslib_1 = __webpack_require__(1);
 const common_1 = __webpack_require__(2);
 const config_1 = __webpack_require__(3);
-const schema_1 = __webpack_require__(135);
+const path_1 = __webpack_require__(14);
+const schema_1 = __webpack_require__(136);
 let ConfigModule = class ConfigModule {
 };
 exports.ConfigModule = ConfigModule;
@@ -12790,6 +13560,13 @@ exports.ConfigModule = ConfigModule = tslib_1.__decorate([
                 isGlobal: true,
                 expandVariables: true,
                 validate: schema_1.configSchema.parse,
+                // Explicitly set env file paths to ensure .env is loaded
+                envFilePath: [
+                    (0, path_1.join)(process.cwd(), ".env.local"),
+                    (0, path_1.join)(process.cwd(), ".env"),
+                    (0, path_1.join)(process.cwd(), "..", ".env"),
+                    (0, path_1.join)(process.cwd(), "..", "..", ".env"),
+                ],
             }),
         ],
     })
@@ -12797,13 +13574,13 @@ exports.ConfigModule = ConfigModule = tslib_1.__decorate([
 
 
 /***/ }),
-/* 135 */
+/* 136 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.configSchema = void 0;
-const z_1 = __webpack_require__(39);
+const z_1 = __webpack_require__(40);
 exports.configSchema = z_1.z.object({
     NODE_ENV: z_1.z.enum(["development", "production"]).default("production"),
     // Ports
@@ -12822,8 +13599,11 @@ exports.configSchema = z_1.z.object({
     CHROME_TOKEN: z_1.z.string(),
     CHROME_URL: z_1.z.string().url(),
     // Mail Server
-    MAIL_FROM: z_1.z.string().includes("@").optional().default("noreply@localhost"),
-    SMTP_URL: z_1.z.string().url().startsWith("smtp://").optional(),
+    SMTP_SERVICE: z_1.z.string().optional(),
+    SMTP_HOST: z_1.z.string().optional(),
+    SMTP_PORT: z_1.z.coerce.number().optional(),
+    SMTP_MAIL: z_1.z.string().optional(),
+    SMTP_PASSWORD: z_1.z.string().optional(),
     // Storage
     STORAGE_ENDPOINT: z_1.z.string(),
     STORAGE_PORT: z_1.z.coerce.number(),
@@ -12863,17 +13643,17 @@ exports.configSchema = z_1.z.object({
 
 
 /***/ }),
-/* 136 */
+/* 137 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ContributorsModule = void 0;
 const tslib_1 = __webpack_require__(1);
-const axios_1 = __webpack_require__(137);
+const axios_1 = __webpack_require__(138);
 const common_1 = __webpack_require__(2);
-const contributors_controller_1 = __webpack_require__(138);
-const contributors_service_1 = __webpack_require__(139);
+const contributors_controller_1 = __webpack_require__(139);
+const contributors_service_1 = __webpack_require__(140);
 let ContributorsModule = class ContributorsModule {
 };
 exports.ContributorsModule = ContributorsModule;
@@ -12887,13 +13667,13 @@ exports.ContributorsModule = ContributorsModule = tslib_1.__decorate([
 
 
 /***/ }),
-/* 137 */
+/* 138 */
 /***/ ((module) => {
 
 module.exports = require("@nestjs/axios");
 
 /***/ }),
-/* 138 */
+/* 139 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -12902,8 +13682,8 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ContributorsController = void 0;
 const tslib_1 = __webpack_require__(1);
 const common_1 = __webpack_require__(2);
-const utils_service_1 = __webpack_require__(112);
-const contributors_service_1 = __webpack_require__(139);
+const utils_service_1 = __webpack_require__(113);
+const contributors_service_1 = __webpack_require__(140);
 let ContributorsController = class ContributorsController {
     constructor(contributorsService, utils) {
         this.contributorsService = contributorsService;
@@ -12936,7 +13716,7 @@ exports.ContributorsController = ContributorsController = tslib_1.__decorate([
 
 
 /***/ }),
-/* 139 */
+/* 140 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -12944,7 +13724,7 @@ var _a, _b;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ContributorsService = void 0;
 const tslib_1 = __webpack_require__(1);
-const axios_1 = __webpack_require__(137);
+const axios_1 = __webpack_require__(138);
 const common_1 = __webpack_require__(2);
 const config_1 = __webpack_require__(3);
 let ContributorsService = class ContributorsService {
@@ -12992,7 +13772,7 @@ exports.ContributorsService = ContributorsService = tslib_1.__decorate([
 
 
 /***/ }),
-/* 140 */
+/* 141 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -13029,7 +13809,7 @@ exports.DatabaseModule = DatabaseModule = tslib_1.__decorate([
 
 
 /***/ }),
-/* 141 */
+/* 142 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -13037,14 +13817,14 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.HealthModule = void 0;
 const tslib_1 = __webpack_require__(1);
 const common_1 = __webpack_require__(2);
-const terminus_1 = __webpack_require__(142);
-const nestjs_redis_health_1 = __webpack_require__(143);
-const printer_module_1 = __webpack_require__(144);
-const storage_module_1 = __webpack_require__(23);
-const browser_health_1 = __webpack_require__(150);
-const database_health_1 = __webpack_require__(151);
-const health_controller_1 = __webpack_require__(152);
-const storage_health_1 = __webpack_require__(153);
+const terminus_1 = __webpack_require__(143);
+const nestjs_redis_health_1 = __webpack_require__(144);
+const printer_module_1 = __webpack_require__(145);
+const storage_module_1 = __webpack_require__(24);
+const browser_health_1 = __webpack_require__(151);
+const database_health_1 = __webpack_require__(152);
+const health_controller_1 = __webpack_require__(153);
+const storage_health_1 = __webpack_require__(154);
 let HealthModule = class HealthModule {
 };
 exports.HealthModule = HealthModule;
@@ -13058,29 +13838,29 @@ exports.HealthModule = HealthModule = tslib_1.__decorate([
 
 
 /***/ }),
-/* 142 */
+/* 143 */
 /***/ ((module) => {
 
 module.exports = require("@nestjs/terminus");
 
 /***/ }),
-/* 143 */
+/* 144 */
 /***/ ((module) => {
 
 module.exports = require("@songkeys/nestjs-redis-health");
 
 /***/ }),
-/* 144 */
+/* 145 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.PrinterModule = void 0;
 const tslib_1 = __webpack_require__(1);
-const axios_1 = __webpack_require__(137);
+const axios_1 = __webpack_require__(138);
 const common_1 = __webpack_require__(2);
-const storage_module_1 = __webpack_require__(23);
-const printer_service_1 = __webpack_require__(145);
+const storage_module_1 = __webpack_require__(24);
+const printer_service_1 = __webpack_require__(146);
 let PrinterModule = class PrinterModule {
 };
 exports.PrinterModule = PrinterModule;
@@ -13094,7 +13874,7 @@ exports.PrinterModule = PrinterModule = tslib_1.__decorate([
 
 
 /***/ }),
-/* 145 */
+/* 146 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -13103,18 +13883,18 @@ var _a, _b, _c, _d;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.PrinterService = void 0;
 const tslib_1 = __webpack_require__(1);
-const axios_1 = __webpack_require__(137);
+const axios_1 = __webpack_require__(138);
 const common_1 = __webpack_require__(2);
 const common_2 = __webpack_require__(2);
 const config_1 = __webpack_require__(3);
-const fontkit_1 = tslib_1.__importDefault(__webpack_require__(146));
-const utils_1 = __webpack_require__(80);
-const utils_2 = __webpack_require__(80);
-const async_retry_1 = tslib_1.__importDefault(__webpack_require__(147));
-const pdf_lib_1 = __webpack_require__(148);
-const puppeteer_1 = __webpack_require__(149);
-const storage_service_1 = __webpack_require__(29);
-const utils_service_1 = __webpack_require__(112);
+const fontkit_1 = tslib_1.__importDefault(__webpack_require__(147));
+const utils_1 = __webpack_require__(81);
+const utils_2 = __webpack_require__(81);
+const async_retry_1 = tslib_1.__importDefault(__webpack_require__(148));
+const pdf_lib_1 = __webpack_require__(149);
+const puppeteer_1 = __webpack_require__(150);
+const storage_service_1 = __webpack_require__(30);
+const utils_service_1 = __webpack_require__(113);
 let PrinterService = PrinterService_1 = class PrinterService {
     constructor(configService, storageService, httpService, utils) {
         this.configService = configService;
@@ -13299,31 +14079,31 @@ exports.PrinterService = PrinterService = PrinterService_1 = tslib_1.__decorate(
 
 
 /***/ }),
-/* 146 */
+/* 147 */
 /***/ ((module) => {
 
 module.exports = require("@pdf-lib/fontkit");
 
 /***/ }),
-/* 147 */
+/* 148 */
 /***/ ((module) => {
 
 module.exports = require("async-retry");
 
 /***/ }),
-/* 148 */
+/* 149 */
 /***/ ((module) => {
 
 module.exports = require("pdf-lib");
 
 /***/ }),
-/* 149 */
+/* 150 */
 /***/ ((module) => {
 
 module.exports = require("puppeteer");
 
 /***/ }),
-/* 150 */
+/* 151 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -13332,8 +14112,8 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.BrowserHealthIndicator = void 0;
 const tslib_1 = __webpack_require__(1);
 const common_1 = __webpack_require__(2);
-const terminus_1 = __webpack_require__(142);
-const printer_service_1 = __webpack_require__(145);
+const terminus_1 = __webpack_require__(143);
+const printer_service_1 = __webpack_require__(146);
 let BrowserHealthIndicator = class BrowserHealthIndicator extends terminus_1.HealthIndicator {
     constructor(printerService) {
         super();
@@ -13357,7 +14137,7 @@ exports.BrowserHealthIndicator = BrowserHealthIndicator = tslib_1.__decorate([
 
 
 /***/ }),
-/* 151 */
+/* 152 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -13366,7 +14146,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.DatabaseHealthIndicator = void 0;
 const tslib_1 = __webpack_require__(1);
 const common_1 = __webpack_require__(2);
-const terminus_1 = __webpack_require__(142);
+const terminus_1 = __webpack_require__(143);
 const nestjs_prisma_1 = __webpack_require__(9);
 let DatabaseHealthIndicator = class DatabaseHealthIndicator extends terminus_1.HealthIndicator {
     constructor(prisma) {
@@ -13391,7 +14171,7 @@ exports.DatabaseHealthIndicator = DatabaseHealthIndicator = tslib_1.__decorate([
 
 
 /***/ }),
-/* 152 */
+/* 153 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -13401,14 +14181,14 @@ exports.HealthController = void 0;
 const tslib_1 = __webpack_require__(1);
 const common_1 = __webpack_require__(2);
 const swagger_1 = __webpack_require__(5);
-const terminus_1 = __webpack_require__(142);
-const nestjs_redis_1 = __webpack_require__(31);
-const nestjs_redis_health_1 = __webpack_require__(143);
-const schema_1 = __webpack_require__(135);
-const utils_service_1 = __webpack_require__(112);
-const browser_health_1 = __webpack_require__(150);
-const database_health_1 = __webpack_require__(151);
-const storage_health_1 = __webpack_require__(153);
+const terminus_1 = __webpack_require__(143);
+const nestjs_redis_1 = __webpack_require__(32);
+const nestjs_redis_health_1 = __webpack_require__(144);
+const schema_1 = __webpack_require__(136);
+const utils_service_1 = __webpack_require__(113);
+const browser_health_1 = __webpack_require__(151);
+const database_health_1 = __webpack_require__(152);
+const storage_health_1 = __webpack_require__(154);
 let HealthController = class HealthController {
     constructor(health, database, browser, storage, redisService, redis, utils) {
         this.health = health;
@@ -13464,7 +14244,7 @@ exports.HealthController = HealthController = tslib_1.__decorate([
 
 
 /***/ }),
-/* 153 */
+/* 154 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -13473,8 +14253,8 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.StorageHealthIndicator = void 0;
 const tslib_1 = __webpack_require__(1);
 const common_1 = __webpack_require__(2);
-const terminus_1 = __webpack_require__(142);
-const storage_service_1 = __webpack_require__(29);
+const terminus_1 = __webpack_require__(143);
+const storage_service_1 = __webpack_require__(30);
 let StorageHealthIndicator = class StorageHealthIndicator extends terminus_1.HealthIndicator {
     constructor(storageService) {
         super();
@@ -13498,7 +14278,7 @@ exports.StorageHealthIndicator = StorageHealthIndicator = tslib_1.__decorate([
 
 
 /***/ }),
-/* 154 */
+/* 155 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -13507,10 +14287,10 @@ exports.ResumeModule = void 0;
 const tslib_1 = __webpack_require__(1);
 const common_1 = __webpack_require__(2);
 const auth_module_1 = __webpack_require__(15);
-const printer_module_1 = __webpack_require__(144);
-const storage_module_1 = __webpack_require__(23);
-const resume_controller_1 = __webpack_require__(155);
-const resume_service_1 = __webpack_require__(161);
+const printer_module_1 = __webpack_require__(145);
+const storage_module_1 = __webpack_require__(24);
+const resume_controller_1 = __webpack_require__(156);
+const resume_service_1 = __webpack_require__(162);
 let ResumeModule = class ResumeModule {
 };
 exports.ResumeModule = ResumeModule;
@@ -13525,7 +14305,7 @@ exports.ResumeModule = ResumeModule = tslib_1.__decorate([
 
 
 /***/ }),
-/* 155 */
+/* 156 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -13535,19 +14315,19 @@ exports.ResumeController = void 0;
 const tslib_1 = __webpack_require__(1);
 const common_1 = __webpack_require__(2);
 const swagger_1 = __webpack_require__(5);
-const client_1 = __webpack_require__(156);
-const library_1 = __webpack_require__(34);
-const dto_1 = __webpack_require__(35);
-const schema_1 = __webpack_require__(44);
-const utils_1 = __webpack_require__(80);
-const zod_to_json_schema_1 = __webpack_require__(157);
-const user_decorator_1 = __webpack_require__(28);
-const optional_guard_1 = __webpack_require__(158);
-const two_factor_guard_1 = __webpack_require__(27);
-const utils_service_1 = __webpack_require__(112);
-const resume_decorator_1 = __webpack_require__(159);
-const resume_guard_1 = __webpack_require__(160);
-const resume_service_1 = __webpack_require__(161);
+const client_1 = __webpack_require__(157);
+const library_1 = __webpack_require__(35);
+const dto_1 = __webpack_require__(36);
+const schema_1 = __webpack_require__(45);
+const utils_1 = __webpack_require__(81);
+const zod_to_json_schema_1 = __webpack_require__(158);
+const user_decorator_1 = __webpack_require__(29);
+const optional_guard_1 = __webpack_require__(159);
+const two_factor_guard_1 = __webpack_require__(28);
+const utils_service_1 = __webpack_require__(113);
+const resume_decorator_1 = __webpack_require__(160);
+const resume_guard_1 = __webpack_require__(161);
+const resume_service_1 = __webpack_require__(162);
 let ResumeController = class ResumeController {
     constructor(resumeService, utils) {
         this.resumeService = resumeService;
@@ -13736,19 +14516,19 @@ exports.ResumeController = ResumeController = tslib_1.__decorate([
 
 
 /***/ }),
-/* 156 */
+/* 157 */
 /***/ ((module) => {
 
 module.exports = require("@prisma/client");
 
 /***/ }),
-/* 157 */
+/* 158 */
 /***/ ((module) => {
 
 module.exports = require("zod-to-json-schema");
 
 /***/ }),
-/* 158 */
+/* 159 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -13769,7 +14549,7 @@ exports.OptionalGuard = OptionalGuard = tslib_1.__decorate([
 
 
 /***/ }),
-/* 159 */
+/* 160 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -13784,7 +14564,7 @@ exports.Resume = (0, common_1.createParamDecorator)((data, ctx) => {
 
 
 /***/ }),
-/* 160 */
+/* 161 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -13793,8 +14573,8 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ResumeGuard = void 0;
 const tslib_1 = __webpack_require__(1);
 const common_1 = __webpack_require__(2);
-const utils_1 = __webpack_require__(80);
-const resume_service_1 = __webpack_require__(161);
+const utils_1 = __webpack_require__(81);
+const resume_service_1 = __webpack_require__(162);
 let ResumeGuard = class ResumeGuard {
     constructor(resumeService) {
         this.resumeService = resumeService;
@@ -13833,7 +14613,7 @@ exports.ResumeGuard = ResumeGuard = tslib_1.__decorate([
 
 
 /***/ }),
-/* 161 */
+/* 162 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -13842,15 +14622,15 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ResumeService = void 0;
 const tslib_1 = __webpack_require__(1);
 const common_1 = __webpack_require__(2);
-const schema_1 = __webpack_require__(44);
-const utils_1 = __webpack_require__(80);
-const utils_2 = __webpack_require__(80);
-const nestjs_redis_1 = __webpack_require__(31);
-const deepmerge_1 = tslib_1.__importDefault(__webpack_require__(162));
+const schema_1 = __webpack_require__(45);
+const utils_1 = __webpack_require__(81);
+const utils_2 = __webpack_require__(81);
+const nestjs_redis_1 = __webpack_require__(32);
+const deepmerge_1 = tslib_1.__importDefault(__webpack_require__(163));
 const nestjs_prisma_1 = __webpack_require__(9);
-const printer_service_1 = __webpack_require__(145);
-const storage_service_1 = __webpack_require__(29);
-const utils_service_1 = __webpack_require__(112);
+const printer_service_1 = __webpack_require__(146);
+const storage_service_1 = __webpack_require__(30);
+const utils_service_1 = __webpack_require__(113);
 let ResumeService = class ResumeService {
     constructor(prisma, printerService, storageService, redisService, utils) {
         this.prisma = prisma;
@@ -14006,23 +14786,23 @@ exports.ResumeService = ResumeService = tslib_1.__decorate([
 
 
 /***/ }),
-/* 162 */
+/* 163 */
 /***/ ((module) => {
 
 module.exports = require("deepmerge");
 
 /***/ }),
-/* 163 */
+/* 164 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.TranslationModule = void 0;
 const tslib_1 = __webpack_require__(1);
-const axios_1 = __webpack_require__(137);
+const axios_1 = __webpack_require__(138);
 const common_1 = __webpack_require__(2);
-const translation_controller_1 = __webpack_require__(164);
-const translation_service_1 = __webpack_require__(165);
+const translation_controller_1 = __webpack_require__(165);
+const translation_service_1 = __webpack_require__(166);
 let TranslationModule = class TranslationModule {
 };
 exports.TranslationModule = TranslationModule;
@@ -14036,7 +14816,7 @@ exports.TranslationModule = TranslationModule = tslib_1.__decorate([
 
 
 /***/ }),
-/* 164 */
+/* 165 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -14045,8 +14825,8 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.TranslationController = void 0;
 const tslib_1 = __webpack_require__(1);
 const common_1 = __webpack_require__(2);
-const utils_service_1 = __webpack_require__(112);
-const translation_service_1 = __webpack_require__(165);
+const utils_service_1 = __webpack_require__(113);
+const translation_service_1 = __webpack_require__(166);
 let TranslationController = class TranslationController {
     constructor(translationService, utils) {
         this.translationService = translationService;
@@ -14070,7 +14850,7 @@ exports.TranslationController = TranslationController = tslib_1.__decorate([
 
 
 /***/ }),
-/* 165 */
+/* 166 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -14078,10 +14858,10 @@ var _a, _b;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.TranslationService = void 0;
 const tslib_1 = __webpack_require__(1);
-const axios_1 = __webpack_require__(137);
+const axios_1 = __webpack_require__(138);
 const common_1 = __webpack_require__(2);
 const config_1 = __webpack_require__(3);
-const utils_1 = __webpack_require__(80);
+const utils_1 = __webpack_require__(81);
 let TranslationService = class TranslationService {
     constructor(httpService, configService) {
         this.httpService = httpService;
@@ -14129,7 +14909,7 @@ exports.TranslationService = TranslationService = tslib_1.__decorate([
 
 
 /***/ }),
-/* 166 */
+/* 167 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -14137,7 +14917,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.UtilsModule = void 0;
 const tslib_1 = __webpack_require__(1);
 const common_1 = __webpack_require__(2);
-const utils_service_1 = __webpack_require__(112);
+const utils_service_1 = __webpack_require__(113);
 let UtilsModule = class UtilsModule {
 };
 exports.UtilsModule = UtilsModule;
@@ -14151,7 +14931,7 @@ exports.UtilsModule = UtilsModule = tslib_1.__decorate([
 
 
 /***/ }),
-/* 167 */
+/* 168 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 

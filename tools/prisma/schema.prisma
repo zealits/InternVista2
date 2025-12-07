@@ -35,16 +35,17 @@ model User {
 }
 
 model Secrets {
-  id                   String    @id @default(cuid())
-  password             String?
-  lastSignedIn         DateTime?
-  verificationToken    String?
-  twoFactorSecret      String?
-  twoFactorBackupCodes String[]  @default([])
-  refreshToken         String?
-  resetToken           String?   @unique
-  userId               String    @unique
-  user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                      String    @id @default(cuid())
+  password                String?
+  lastSignedIn            DateTime?
+  verificationToken       String?
+  verificationTokenExpire DateTime?
+  twoFactorSecret         String?
+  twoFactorBackupCodes    String[]  @default([])
+  refreshToken            String?
+  resetToken              String?   @unique
+  userId                  String    @unique
+  user                    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Resume {

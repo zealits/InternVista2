@@ -5,6 +5,8 @@ import {
   Get,
   HttpCode,
   InternalServerErrorException,
+  Logger,
+  Param,
   Patch,
   Post,
   Query,
@@ -281,41 +283,97 @@ export class AuthController {
   }
 
   // Email Verification Flows
+  /**
+   * GET /api/auth/verify-email/:token
+   * Verify email using token from URL path
+   */
   @ApiTags("Email Verification")
-  @Post("verify-email")
-  @UseGuards(TwoFactorGuard)
-  async verifyEmail(
-    @User("id") id: string,
-    @User("emailVerified") emailVerified: boolean,
-    @Query("token") token: string,
-  ) {
-    if (!token) throw new BadRequestException(ErrorMessage.InvalidVerificationToken);
-
-    if (emailVerified) {
-      throw new BadRequestException(ErrorMessage.EmailAlreadyVerified);
+  @Get("verify-email/:token")
+  async verifyEmailGet(@Param("token") token: string) {
+    if (!token) {
+      throw new BadRequestException(ErrorMessage.InvalidVerificationToken);
     }
 
-    await this.authService.verifyEmail(id, token);
-
-    return { message: "Your email has been successfully verified." };
+    try {
+      await this.authService.verifyEmail(token);
+      return { message: "Your email has been successfully verified." };
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      Logger.error(error, "Failed to verify email");
+      throw new BadRequestException(ErrorMessage.InvalidVerificationToken);
+    }
   }
 
+  /**
+   * POST /api/auth/verify-email
+   * Alternative POST endpoint for email verification (for compatibility)
+   */
   @ApiTags("Email Verification")
-  @Post("verify-email/resend")
-  @UseGuards(TwoFactorGuard)
+  @Post("verify-email")
+  async verifyEmailPost(@Query("token") token: string) {
+    if (!token) {
+      throw new BadRequestException(ErrorMessage.InvalidVerificationToken);
+    }
+
+    try {
+      await this.authService.verifyEmail(token);
+      return { message: "Your email has been successfully verified." };
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      Logger.error(error, "Failed to verify email");
+      throw new BadRequestException(ErrorMessage.InvalidVerificationToken);
+    }
+  }
+
+  /**
+   * POST /api/auth/resend-verification
+   * Resend verification email
+   * Can be called by authenticated users or with email in body
+   */
+  @ApiTags("Email Verification")
+  @HttpCode(200)
+  @Post("resend-verification")
   async resendVerificationEmail(
-    @User("email") email: string,
-    @User("emailVerified") emailVerified: boolean,
+    @User("email") email?: string,
+    @User("emailVerified") emailVerified?: boolean,
+    @Body() body?: { email?: string },
   ) {
-    if (emailVerified) {
+    // Get email from authenticated user or request body
+    const userEmail = email || body?.email;
+
+    if (!userEmail) {
+      throw new BadRequestException("Email is required. Please provide your email address.");
+    }
+
+    // If user is authenticated, check if already verified
+    if (email && emailVerified) {
       throw new BadRequestException(ErrorMessage.EmailAlreadyVerified);
     }
 
-    await this.authService.sendVerificationEmail(email);
+    try {
+      await this.authService.resendVerificationEmail(userEmail);
+      return {
+        message: "A verification email has been sent to your email address. Please check your inbox.",
+      };
+    } catch (error) {
+      // Log the full error for debugging
+      Logger.error(error, "Failed to resend verification email");
 
-    return {
-      message: "You should have received a new email with a link to verify your email address.",
-    };
+      // If it's a known error (like already verified), throw it
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+
+      // Return a generic error message that doesn't reveal too much
+      // Don't reveal if email exists or not for security
+      return {
+        message: "If an account exists with this email, a verification email has been sent.",
+      };
+    }
   }
 
   // @Post('plain-text-email')

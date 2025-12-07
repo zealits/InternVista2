@@ -70,6 +70,22 @@ export class UserService {
     await this.prisma.secrets.update({ where: { resetToken }, data });
   }
 
+  async findByVerificationToken(verificationToken: string) {
+    const secrets = await this.prisma.secrets.findFirst({
+      where: { verificationToken },
+      include: { user: true },
+    });
+
+    if (!secrets || !secrets.user) {
+      return null;
+    }
+
+    return {
+      ...secrets.user,
+      secrets,
+    };
+  }
+
   async deleteOneById(id: string) {
     await Promise.all([this.redis.del(`user:${id}:*`), this.storageService.deleteFolder(id)]);
 

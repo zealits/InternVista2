@@ -3,6 +3,7 @@
 tmp
 /out-tsc
 
+.env
 # Project Dependencies
 node_modules
 
