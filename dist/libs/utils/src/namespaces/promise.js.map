@@ -1,1 +1,0 @@
-{"version":3,"sources":["../../../../../libs/utils/src/namespaces/promise.ts"],"sourcesContent":["export const delay = (time: number) => new Promise((resolve) => setTimeout(resolve, time));\r\n"],"names":["delay","time","Promise","resolve","setTimeout"],"mappings":";;;;+BAAaA;;;eAAAA;;;AAAN,MAAMA,QAAQ,CAACC,OAAiB,IAAIC,QAAQ,CAACC,UAAYC,WAAWD,SAASF"}

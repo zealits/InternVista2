@@ -44,10 +44,36 @@ import { EmailController } from './email.controller';
     ServeStaticModule.forRoot({
       serveRoot: "/artboard",
       rootPath: join(__dirname, "..", "artboard"),
+      serveStaticOptions: {
+        maxAge: 31536000, // 1 year cache for artboard assets
+        immutable: true,
+      },
     }),
     ServeStaticModule.forRoot({
       renderPath: "/*",
       rootPath: join(__dirname, "..", "client"),
+      serveStaticOptions: {
+        // Cache static assets (JS, CSS, images) for 1 year
+        maxAge: 31536000,
+        immutable: true,
+        // Set proper cache headers
+        setHeaders: (res, path) => {
+          // Cache JS and CSS files aggressively
+          if (path.match(/\.(js|css)$/)) {
+            res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+          }
+          // Cache images and fonts
+          if (path.match(/\.(png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot)$/)) {
+            res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+          }
+          // Don't cache HTML files (for SPA routing)
+          if (path.match(/\.html$/)) {
+            res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+            res.setHeader("Pragma", "no-cache");
+            res.setHeader("Expires", "0");
+          }
+        },
+      },
     }),
   ],
   providers: [
