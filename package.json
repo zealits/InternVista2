@@ -26,6 +26,9 @@
     "prisma:generate": "pnpm exec prisma generate",
     "prisma:migrate": "pnpm exec prisma migrate deploy",
     "prisma:migrate:dev": "pnpm exec prisma migrate dev",
+    "prisma:baseline": "pnpm exec prisma migrate resolve --applied 20231121234455_initialize_tables && pnpm exec prisma migrate resolve --applied 20251206130928_add_verification_token_expire",
+    "prisma:status": "pnpm exec prisma migrate status",
+    "start:skip-migrate": "node dist/apps/server/main",
     "messages:extract": "pnpm exec lingui extract --clean --overwrite"
   },
   "devDependencies": {
