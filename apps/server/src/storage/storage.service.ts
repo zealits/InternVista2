@@ -124,8 +124,19 @@ export class StorageService implements OnModuleInit {
   ) {
     const extension = type === "resumes" ? "pdf" : "jpg";
     const storageUrl = this.configService.get<string>("STORAGE_URL");
+    
+    if (!storageUrl) {
+      const error = "STORAGE_URL is not configured";
+      this.logger.error(error);
+      throw new InternalServerErrorException(error);
+    }
+
+    // Ensure storageUrl doesn't have a trailing slash to avoid double slashes
+    const normalizedStorageUrl = storageUrl.endsWith("/") ? storageUrl.slice(0, -1) : storageUrl;
     const filepath = `${userId}/${type}/${filename}.${extension}`;
-    const url = `${storageUrl}/${filepath}`;
+    const url = `${normalizedStorageUrl}/${filepath}`;
+    
+    this.logger.debug(`Uploading ${type} file to: ${filepath}, URL will be: ${url}`);
     const metadata =
       extension === "jpg"
         ? { "Content-Type": "image/jpeg" }
@@ -148,9 +159,18 @@ export class StorageService implements OnModuleInit {
         this.redis.set(`user:${userId}:storage:${type}:${filename}`, url),
       ]);
 
+      this.logger.debug(`Successfully uploaded ${type} file: ${filepath} to ${url}`);
       return url;
     } catch (error) {
-      throw new InternalServerErrorException("There was an error while uploading the file.");
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(
+        `Failed to upload ${type} file: ${filepath}. Error: ${errorMessage}`,
+        errorStack,
+      );
+      throw new InternalServerErrorException(
+        `There was an error while uploading the file: ${errorMessage}`,
+      );
     }
   }
 

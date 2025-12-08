@@ -131,10 +131,18 @@ export class ResumeController {
     try {
       const url = await this.resumeService.printResume(resume, userId);
 
+      Logger.debug(`Resume print request successful for resume #${resume.id}, URL: ${url}`);
       return { url };
     } catch (error) {
-      Logger.error(error);
-      throw new InternalServerErrorException(error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      Logger.error(
+        `Failed to print resume #${resume.id}. Error: ${errorMessage}`,
+        errorStack,
+      );
+      throw new InternalServerErrorException(
+        error instanceof Error ? error.message : String(error),
+      );
     }
   }
 

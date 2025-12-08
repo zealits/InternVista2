@@ -1209,8 +1209,16 @@ let StorageService = StorageService_1 = class StorageService {
     async uploadObject(userId, type, buffer, filename = (0, cuid2_1.createId)()) {
         const extension = type === "resumes" ? "pdf" : "jpg";
         const storageUrl = this.configService.get("STORAGE_URL");
+        if (!storageUrl) {
+            const error = "STORAGE_URL is not configured";
+            this.logger.error(error);
+            throw new common_1.InternalServerErrorException(error);
+        }
+        // Ensure storageUrl doesn't have a trailing slash to avoid double slashes
+        const normalizedStorageUrl = storageUrl.endsWith("/") ? storageUrl.slice(0, -1) : storageUrl;
         const filepath = `${userId}/${type}/${filename}.${extension}`;
-        const url = `${storageUrl}/${filepath}`;
+        const url = `${normalizedStorageUrl}/${filepath}`;
+        this.logger.debug(`Uploading ${type} file to: ${filepath}, URL will be: ${url}`);
         const metadata = extension === "jpg"
             ? { "Content-Type": "image/jpeg" }
             : {
@@ -1229,10 +1237,14 @@ let StorageService = StorageService_1 = class StorageService {
                 this.client.putObject(this.bucketName, filepath, buffer, metadata),
                 this.redis.set(`user:${userId}:storage:${type}:${filename}`, url),
             ]);
+            this.logger.debug(`Successfully uploaded ${type} file: ${filepath} to ${url}`);
             return url;
         }
         catch (error) {
-            throw new common_1.InternalServerErrorException("There was an error while uploading the file.");
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            const errorStack = error instanceof Error ? error.stack : undefined;
+            this.logger.error(`Failed to upload ${type} file: ${filepath}. Error: ${errorMessage}`, errorStack);
+            throw new common_1.InternalServerErrorException(`There was an error while uploading the file: ${errorMessage}`);
         }
     }
     async deleteObject(userId, type, filename) {
@@ -14042,19 +14054,28 @@ let PrinterService = PrinterService_1 = class PrinterService {
     async printResume(resume) {
         return this.utils.getCachedOrSet(`user:${resume.userId}:storage:resumes:${resume.id}`, async () => {
             const start = performance.now();
-            const url = await (0, async_retry_1.default)(() => this.generateResume(resume), {
-                retries: 3,
-                randomize: true,
-                onRetry: (_, attempt) => {
-                    this.logger.log(`Retrying to print resume #${resume.id}, attempt #${attempt}`);
-                },
-            });
-            const duration = Number(performance.now() - start).toFixed(0);
-            const numPages = resume.data.metadata.layout.length;
-            this.logger.debug(`Chrome took ${duration}ms to print ${numPages} page(s)`);
-            return url;
-        }, 1000 * 60 * 60 * 24, // 24 hours TTL
-        "string");
+            try {
+                const url = await (0, async_retry_1.default)(() => this.generateResume(resume), {
+                    retries: 3,
+                    randomize: true,
+                    onRetry: (error, attempt) => {
+                        const errorMessage = error instanceof Error ? error.message : String(error);
+                        this.logger.warn(`Retrying to print resume #${resume.id}, attempt #${attempt}. Error: ${errorMessage}`);
+                    },
+                });
+                const duration = Number(performance.now() - start).toFixed(0);
+                const numPages = resume.data.metadata.layout.length;
+                this.logger.debug(`Chrome took ${duration}ms to print ${numPages} page(s)`);
+                this.logger.debug(`Resume PDF generated successfully: ${url}`);
+                return url;
+            }
+            catch (error) {
+                const errorMessage = error instanceof Error ? error.message : String(error);
+                const errorStack = error instanceof Error ? error.stack : undefined;
+                this.logger.error(`Failed to print resume #${resume.id} after all retries. Error: ${errorMessage}`, errorStack);
+                throw error;
+            }
+        });
     }
     async printPreview(resume) {
         return this.utils.getCachedOrSet(`user:${resume.userId}:storage:previews:${resume.id}`, async () => {
@@ -14069,8 +14090,7 @@ let PrinterService = PrinterService_1 = class PrinterService {
             const duration = Number(performance.now() - start).toFixed(0);
             this.logger.debug(`Chrome took ${duration}ms to generate preview`);
             return url;
-        }, 1000 * 60 * 60 * 24, // 24 hours TTL
-        "string");
+        });
     }
     async generateResume(resume) {
         let browser;
@@ -14653,11 +14673,14 @@ let ResumeController = class ResumeController {
     async printResume(userId, resume) {
         try {
             const url = await this.resumeService.printResume(resume, userId);
+            common_1.Logger.debug(`Resume print request successful for resume #${resume.id}, URL: ${url}`);
             return { url };
         }
         catch (error) {
-            common_1.Logger.error(error);
-            throw new common_1.InternalServerErrorException(error);
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            const errorStack = error instanceof Error ? error.stack : undefined;
+            common_1.Logger.error(`Failed to print resume #${resume.id}. Error: ${errorMessage}`, errorStack);
+            throw new common_1.InternalServerErrorException(error instanceof Error ? error.message : String(error));
         }
     }
     async printPreview(resume) {

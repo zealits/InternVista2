@@ -150,23 +150,38 @@ export class PrinterService {
       async () => {
         const start = performance.now();
 
-        const url = await retry(() => this.generateResume(resume), {
-          retries: 3,
-          randomize: true,
-          onRetry: (_, attempt) => {
-            this.logger.log(`Retrying to print resume #${resume.id}, attempt #${attempt}`);
-          },
-        });
+        try {
+          const url = await retry(
+            () => this.generateResume(resume),
+            {
+              retries: 3,
+              randomize: true,
+              onRetry: (error, attempt) => {
+                const errorMessage = error instanceof Error ? error.message : String(error);
+                this.logger.warn(
+                  `Retrying to print resume #${resume.id}, attempt #${attempt}. Error: ${errorMessage}`,
+                );
+              },
+            },
+          );
 
-        const duration = Number(performance.now() - start).toFixed(0);
-        const numPages = resume.data.metadata.layout.length;
+          const duration = Number(performance.now() - start).toFixed(0);
+          const numPages = resume.data.metadata.layout.length;
 
-        this.logger.debug(`Chrome took ${duration}ms to print ${numPages} page(s)`);
+          this.logger.debug(`Chrome took ${duration}ms to print ${numPages} page(s)`);
+          this.logger.debug(`Resume PDF generated successfully: ${url}`);
 
-        return url;
+          return url;
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          const errorStack = error instanceof Error ? error.stack : undefined;
+          this.logger.error(
+            `Failed to print resume #${resume.id} after all retries. Error: ${errorMessage}`,
+            errorStack,
+          );
+          throw error;
+        }
       },
-      1000 * 60 * 60 * 24, // 24 hours TTL
-      "string", // Use "string" type to match how uploadObject stores the URL
     );
   }
 
@@ -192,8 +207,6 @@ export class PrinterService {
 
         return url;
       },
-      1000 * 60 * 60 * 24, // 24 hours TTL
-      "string", // Use "string" type to match how uploadObject stores the URL
     );
   }
 
