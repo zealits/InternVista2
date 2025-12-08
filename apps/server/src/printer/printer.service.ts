@@ -58,13 +58,14 @@ export class PrinterService {
         // Launch Chrome directly using executable path
         return await launch({
           executablePath: this.browserExecutablePath,
-          headless: true,
+          headless: 'new',
           args: [
             "--no-sandbox",
             "--disable-setuid-sandbox",
             "--disable-dev-shm-usage",
-            "--disable-accelerated-2d-canvas",
             "--disable-gpu",
+            "--single-process",
+            "--no-zygote",
           ],
         });
       } else if (this.browserURL) {
@@ -193,25 +194,11 @@ export class PrinterService {
         window.localStorage.setItem("resume", JSON.stringify(data));
       }, resume.data);
 
-      // Use a more reliable waitUntil option with timeout
-      // Try networkidle0 first, but fallback to load if it times out
-      try {
-        await page.goto(`${url}/artboard/preview`, {
-          waitUntil: "networkidle0",
-          timeout: 60000,
-        });
-      } catch (navigationError) {
-        this.logger.warn(
-          `Navigation with networkidle0 failed, retrying with load: ${navigationError.message}`,
-        );
-        // Fallback to 'load' which is more reliable
-        await page.goto(`${url}/artboard/preview`, {
-          waitUntil: "load",
-          timeout: 60000,
-        });
-        // Wait a bit for any remaining network activity
-        await page.waitForTimeout(2000);
-      }
+      // Use a reliable waitUntil option with timeout
+      await page.goto(`${url}/artboard/preview`, {
+        waitUntil: ['load', 'domcontentloaded'],
+        timeout: 60000,
+      });
 
       if (!page) {
         throw new Error("Page is not initialized");
@@ -378,25 +365,11 @@ export class PrinterService {
 
       await page.setViewport({ width: 794, height: 1123 });
 
-      // Use a more reliable waitUntil option with timeout
-      // Try networkidle0 first, but fallback to load if it times out
-      try {
-        await page.goto(`${url}/artboard/preview`, {
-          waitUntil: "networkidle0",
-          timeout: 60000,
-        });
-      } catch (navigationError) {
-        this.logger.warn(
-          `Navigation with networkidle0 failed, retrying with load: ${navigationError.message}`,
-        );
-        // Fallback to 'load' which is more reliable
-        await page.goto(`${url}/artboard/preview`, {
-          waitUntil: "load",
-          timeout: 60000,
-        });
-        // Wait a bit for any remaining network activity
-        await page.waitForTimeout(2000);
-      }
+      // Use a reliable waitUntil option with timeout
+      await page.goto(`${url}/artboard/preview`, {
+        waitUntil: ['load', 'domcontentloaded'],
+        timeout: 60000,
+      });
 
       // Save the JPEG to storage and return the URL
       // Store the URL in cache for future requests, under the previously generated hash digest
