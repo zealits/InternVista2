@@ -4,7 +4,8 @@ import { NestFactory } from "@nestjs/core";
 import { NestExpressApplication } from "@nestjs/platform-express";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import * as Sentry from "@sentry/node";
-import compression from "compression";
+import compression, { CompressionFilter } from "compression";
+import { Request, Response } from "express";
 import cookieParser from "cookie-parser";
 import helmet from "helmet";
 import { PrismaService } from "nestjs-prisma";
@@ -44,16 +45,18 @@ async function bootstrap() {
 
   // Compression - Enable gzip compression for faster response times
   if (process.env.NODE_ENV === "production") {
+    const compressionFilter: CompressionFilter = (req: Request, res: Response) => {
+      // Compress all responses except if explicitly disabled
+      if (req.headers["x-no-compression"]) {
+        return false;
+      }
+      return compression.filter(req, res);
+    };
+
     app.use(
       compression({
         level: 6, // Compression level (1-9, 6 is a good balance)
-        filter: (req, res) => {
-          // Compress all responses except if explicitly disabled
-          if (req.headers["x-no-compression"]) {
-            return false;
-          }
-          return compression.filter(req, res);
-        },
+        filter: compressionFilter,
       }),
     );
   }
