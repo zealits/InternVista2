@@ -20,9 +20,10 @@ export const configSchema = z.object({
   ACCESS_TOKEN_SECRET: z.string(),
   REFRESH_TOKEN_SECRET: z.string(),
 
-  // Browser
-  CHROME_TOKEN: z.string(),
-  CHROME_URL: z.string().url(),
+  // Browser - Either use BROWSER_EXECUTABLE_PATH (launch Chrome directly) or CHROME_URL/CHROME_TOKEN (connect to remote Chrome)
+  BROWSER_EXECUTABLE_PATH: z.string().optional(),
+  CHROME_TOKEN: z.string().optional(),
+  CHROME_URL: z.string().url().optional(),
 
   // Mail Server
   SMTP_SERVICE: z.string().optional(),

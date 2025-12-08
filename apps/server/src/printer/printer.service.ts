@@ -8,7 +8,7 @@ import { getFontUrls } from "@reactive-resume/utils";
 import { ErrorMessage } from "@reactive-resume/utils";
 import retry from "async-retry";
 import { PDFDocument } from "pdf-lib";
-import { connect, Browser, Page } from "puppeteer";
+import { connect, launch, Browser, Page } from "puppeteer";
 
 import { Config } from "../config/schema";
 import { StorageService } from "../storage/storage.service";
@@ -18,7 +18,9 @@ import { UtilsService } from "../utils/utils.service";
 export class PrinterService {
   private readonly logger = new Logger(PrinterService.name);
 
-  private browserURL: string;
+  private browserURL: string | null = null;
+  private browserExecutablePath: string | null = null;
+  private useDirectLaunch: boolean;
 
   constructor(
     private readonly configService: ConfigService<Config>,
@@ -26,15 +28,51 @@ export class PrinterService {
     private readonly httpService: HttpService,
     private readonly utils: UtilsService,
   ) {
-    const chromeUrl = this.configService.getOrThrow<string>("CHROME_URL");
-    const chromeToken = this.configService.getOrThrow<string>("CHROME_TOKEN");
-
-    this.browserURL = `${chromeUrl}?token=${chromeToken}`;
+    // Check if BROWSER_EXECUTABLE_PATH is set (preferred method)
+    const executablePath = this.configService.get<string>("BROWSER_EXECUTABLE_PATH");
+    
+    if (executablePath) {
+      this.browserExecutablePath = executablePath;
+      this.useDirectLaunch = true;
+      this.logger.log(`Using direct Chrome launch with executable: ${executablePath}`);
+    } else {
+      // Fall back to remote Chrome connection (backward compatibility)
+      const chromeUrl = this.configService.get<string>("CHROME_URL");
+      const chromeToken = this.configService.get<string>("CHROME_TOKEN");
+      
+      if (!chromeUrl || !chromeToken) {
+        throw new Error(
+          "Either BROWSER_EXECUTABLE_PATH or both CHROME_URL and CHROME_TOKEN must be configured",
+        );
+      }
+      
+      this.browserURL = `${chromeUrl}?token=${chromeToken}`;
+      this.useDirectLaunch = false;
+      this.logger.log(`Using remote Chrome connection: ${chromeUrl}`);
+    }
   }
 
   private async getBrowser() {
     try {
-      return await connect({ browserWSEndpoint: this.browserURL });
+      if (this.useDirectLaunch && this.browserExecutablePath) {
+        // Launch Chrome directly using executable path
+        return await launch({
+          executablePath: this.browserExecutablePath,
+          headless: true,
+          args: [
+            "--no-sandbox",
+            "--disable-setuid-sandbox",
+            "--disable-dev-shm-usage",
+            "--disable-accelerated-2d-canvas",
+            "--disable-gpu",
+          ],
+        });
+      } else if (this.browserURL) {
+        // Connect to remote Chrome instance
+        return await connect({ browserWSEndpoint: this.browserURL });
+      } else {
+        throw new Error("Browser configuration is invalid");
+      }
     } catch (error) {
       throw new InternalServerErrorException(ErrorMessage.InvalidBrowserConnection, error.message);
     }
@@ -43,7 +81,12 @@ export class PrinterService {
   async getVersion() {
     const browser = await this.getBrowser();
     const version = await browser.version();
-    browser.disconnect();
+    // Use close() for launched browsers, disconnect() for connected browsers
+    if (this.useDirectLaunch) {
+      await browser.close();
+    } else {
+      browser.disconnect();
+    }
     return version;
   }
 
@@ -239,9 +282,13 @@ export class PrinterService {
         resume.id,
       );
 
-      // Close all the pages and disconnect from the browser
+      // Close all the pages and disconnect/close the browser
       await page.close();
-      browser.disconnect();
+      if (this.useDirectLaunch) {
+        await browser.close();
+      } else {
+        browser.disconnect();
+      }
 
       return resumeUrl;
     } catch (error) {
@@ -257,11 +304,19 @@ export class PrinterService {
       }
       
       try {
-        if (browser && browser.isConnected()) {
-          browser.disconnect();
+        if (browser) {
+          if (this.useDirectLaunch) {
+            // For launched browsers, just close (isConnected() may not work the same way)
+            await browser.close();
+          } else {
+            // For connected browsers, check connection before disconnecting
+            if (browser.isConnected()) {
+              browser.disconnect();
+            }
+          }
         }
       } catch (disconnectError) {
-        this.logger.warn(`Error disconnecting browser: ${disconnectError.message}`);
+        this.logger.warn(`Error closing/disconnecting browser: ${disconnectError.message}`);
       }
       
       // Re-throw the error so retry mechanism can work
@@ -355,9 +410,13 @@ export class PrinterService {
         resume.id,
       );
 
-      // Close all the pages and disconnect from the browser
+      // Close all the pages and disconnect/close the browser
       await page.close();
-      browser.disconnect();
+      if (this.useDirectLaunch) {
+        await browser.close();
+      } else {
+        browser.disconnect();
+      }
 
       return previewUrl;
     } catch (error) {
@@ -373,11 +432,19 @@ export class PrinterService {
       }
       
       try {
-        if (browser && browser.isConnected()) {
-          browser.disconnect();
+        if (browser) {
+          if (this.useDirectLaunch) {
+            // For launched browsers, just close (isConnected() may not work the same way)
+            await browser.close();
+          } else {
+            // For connected browsers, check connection before disconnecting
+            if (browser.isConnected()) {
+              browser.disconnect();
+            }
+          }
         }
       } catch (disconnectError) {
-        this.logger.warn(`Error disconnecting browser: ${disconnectError.message}`);
+        this.logger.warn(`Error closing/disconnecting browser: ${disconnectError.message}`);
       }
       
       // Re-throw the error so retry mechanism can work
