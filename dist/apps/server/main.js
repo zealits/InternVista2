@@ -89,12 +89,12 @@ const database_module_1 = __webpack_require__(142);
 const health_module_1 = __webpack_require__(143);
 const mail_module_1 = __webpack_require__(19);
 const printer_module_1 = __webpack_require__(146);
-const resume_module_1 = __webpack_require__(156);
+const resume_module_1 = __webpack_require__(157);
 const storage_module_1 = __webpack_require__(25);
-const translation_module_1 = __webpack_require__(165);
+const translation_module_1 = __webpack_require__(166);
 const user_module_1 = __webpack_require__(24);
-const utils_module_1 = __webpack_require__(168);
-const email_controller_1 = __webpack_require__(169);
+const utils_module_1 = __webpack_require__(169);
+const email_controller_1 = __webpack_require__(170);
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -13627,9 +13627,10 @@ exports.configSchema = z_1.z.object({
     // Authentication Secrets
     ACCESS_TOKEN_SECRET: z_1.z.string(),
     REFRESH_TOKEN_SECRET: z_1.z.string(),
-    // Browser
-    CHROME_TOKEN: z_1.z.string(),
-    CHROME_URL: z_1.z.string().url(),
+    // Browser - Either use BROWSER_EXECUTABLE_PATH (launch Chrome directly) or CHROME_URL/CHROME_TOKEN (connect to remote Chrome)
+    BROWSER_EXECUTABLE_PATH: z_1.z.string().optional(),
+    CHROME_TOKEN: z_1.z.string().optional(),
+    CHROME_URL: z_1.z.string().url().optional(),
     // Mail Server
     SMTP_SERVICE: z_1.z.string().optional(),
     SMTP_HOST: z_1.z.string().optional(),
@@ -13853,10 +13854,10 @@ const terminus_1 = __webpack_require__(144);
 const nestjs_redis_health_1 = __webpack_require__(145);
 const printer_module_1 = __webpack_require__(146);
 const storage_module_1 = __webpack_require__(25);
-const browser_health_1 = __webpack_require__(152);
-const database_health_1 = __webpack_require__(153);
-const health_controller_1 = __webpack_require__(154);
-const storage_health_1 = __webpack_require__(155);
+const browser_health_1 = __webpack_require__(153);
+const database_health_1 = __webpack_require__(154);
+const health_controller_1 = __webpack_require__(155);
+const storage_health_1 = __webpack_require__(156);
 let HealthModule = class HealthModule {
 };
 exports.HealthModule = HealthModule;
@@ -13925,6 +13926,8 @@ const utils_2 = __webpack_require__(82);
 const async_retry_1 = tslib_1.__importDefault(__webpack_require__(149));
 const pdf_lib_1 = __webpack_require__(150);
 const puppeteer_1 = __webpack_require__(151);
+const fs = tslib_1.__importStar(__webpack_require__(152));
+const path = tslib_1.__importStar(__webpack_require__(15));
 const storage_service_1 = __webpack_require__(31);
 const utils_service_1 = __webpack_require__(114);
 let PrinterService = PrinterService_1 = class PrinterService {
@@ -13934,22 +13937,106 @@ let PrinterService = PrinterService_1 = class PrinterService {
         this.httpService = httpService;
         this.utils = utils;
         this.logger = new common_1.Logger(PrinterService_1.name);
-        const chromeUrl = this.configService.getOrThrow("CHROME_URL");
-        const chromeToken = this.configService.getOrThrow("CHROME_TOKEN");
-        this.browserURL = `${chromeUrl}?token=${chromeToken}`;
+        this.browserURL = null;
+        this.browserExecutablePath = null;
+        // Check if BROWSER_EXECUTABLE_PATH is set (preferred method)
+        let executablePath = this.configService.get("BROWSER_EXECUTABLE_PATH");
+        if (executablePath) {
+            this.browserExecutablePath = executablePath;
+            this.useDirectLaunch = true;
+            this.logger.log(`Using direct Chrome launch with executable: ${executablePath}`);
+        }
+        else {
+            // Try to auto-detect Chrome on Windows
+            const detectedPath = this.detectChromePath();
+            if (detectedPath) {
+                this.browserExecutablePath = detectedPath;
+                this.useDirectLaunch = true;
+                this.logger.log(`Auto-detected Chrome at: ${detectedPath}`);
+            }
+            else {
+                // Fall back to remote Chrome connection (backward compatibility)
+                const chromeUrl = this.configService.get("CHROME_URL");
+                const chromeToken = this.configService.get("CHROME_TOKEN");
+                if (!chromeUrl || !chromeToken) {
+                    this.logger.error("Browser configuration error: Either BROWSER_EXECUTABLE_PATH or both CHROME_URL and CHROME_TOKEN must be configured. " +
+                        "On Windows, Chrome is typically located at: C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe or " +
+                        "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe");
+                    throw new Error("Either BROWSER_EXECUTABLE_PATH or both CHROME_URL and CHROME_TOKEN must be configured");
+                }
+                this.browserURL = `${chromeUrl}?token=${chromeToken}`;
+                this.useDirectLaunch = false;
+                this.logger.log(`Using remote Chrome connection: ${chromeUrl}`);
+            }
+        }
+    }
+    /**
+     * Attempts to detect Chrome installation path on Windows
+     */
+    detectChromePath() {
+        if (process.platform !== "win32") {
+            return null;
+        }
+        const possiblePaths = [
+            "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+            "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
+            path.join(process.env.LOCALAPPDATA || "", "Google", "Chrome", "Application", "chrome.exe"),
+            path.join(process.env.PROGRAMFILES || "", "Google", "Chrome", "Application", "chrome.exe"),
+            path.join(process.env["PROGRAMFILES(X86)"] || "", "Google", "Chrome", "Application", "chrome.exe"),
+        ];
+        for (const chromePath of possiblePaths) {
+            if (fs.existsSync(chromePath)) {
+                return chromePath;
+            }
+        }
+        return null;
     }
     async getBrowser() {
         try {
-            return await (0, puppeteer_1.connect)({ browserWSEndpoint: this.browserURL });
+            if (this.useDirectLaunch && this.browserExecutablePath) {
+                // Launch Chrome directly using executable path
+                this.logger.debug(`Attempting to launch Chrome from: ${this.browserExecutablePath}`);
+                // Platform-specific Chrome launch arguments
+                const baseArgs = [
+                    "--no-sandbox",
+                    "--disable-dev-shm-usage",
+                    "--disable-gpu",
+                ];
+                // Linux-specific flags (not needed on Windows/Mac)
+                if (process.platform === "linux") {
+                    baseArgs.push("--disable-setuid-sandbox", "--single-process", "--no-zygote");
+                }
+                return await (0, puppeteer_1.launch)({
+                    executablePath: this.browserExecutablePath,
+                    headless: 'new',
+                    args: baseArgs,
+                });
+            }
+            else if (this.browserURL) {
+                // Connect to remote Chrome instance
+                this.logger.debug(`Attempting to connect to Chrome at: ${this.browserURL}`);
+                return await (0, puppeteer_1.connect)({ browserWSEndpoint: this.browserURL });
+            }
+            else {
+                throw new Error("Browser configuration is invalid. Either BROWSER_EXECUTABLE_PATH or both CHROME_URL and CHROME_TOKEN must be configured");
+            }
         }
         catch (error) {
-            throw new common_1.InternalServerErrorException(utils_2.ErrorMessage.InvalidBrowserConnection, error.message);
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            this.logger.error(`Failed to get browser: ${errorMessage}`, error instanceof Error ? error.stack : undefined);
+            throw new common_1.InternalServerErrorException(utils_2.ErrorMessage.InvalidBrowserConnection, `Failed to connect to browser: ${errorMessage}. Please check your browser configuration.`);
         }
     }
     async getVersion() {
         const browser = await this.getBrowser();
         const version = await browser.version();
-        browser.disconnect();
+        // Use close() for launched browsers, disconnect() for connected browsers
+        if (this.useDirectLaunch) {
+            await browser.close();
+        }
+        else {
+            browser.disconnect();
+        }
         return version;
     }
     async printResume(resume) {
@@ -14005,7 +14092,9 @@ let PrinterService = PrinterService_1 = class PrinterService {
             let url = this.utils.getUrl();
             const publicUrl = this.configService.getOrThrow("PUBLIC_URL");
             const storageUrl = this.configService.getOrThrow("STORAGE_URL");
-            if ([publicUrl, storageUrl].some((url) => url.includes("localhost"))) {
+            // Only replace localhost with host.docker.internal if browser is running in Docker (remote Chrome)
+            // When using direct launch (browser on same machine), keep localhost as-is
+            if (!this.useDirectLaunch && [publicUrl, storageUrl].some((url) => url.includes("localhost"))) {
                 // Switch client URL from `localhost` to `host.docker.internal` in development
                 // This is required because the browser is running in a container and the client is running on the host machine.
                 url = url.replace("localhost", "host.docker.internal");
@@ -14090,9 +14179,14 @@ let PrinterService = PrinterService_1 = class PrinterService {
             const buffer = Buffer.from(await pdf.save());
             // This step will also save the resume URL in cache
             const resumeUrl = await this.storageService.uploadObject(resume.userId, "resumes", buffer, resume.id);
-            // Close all the pages and disconnect from the browser
+            // Close all the pages and disconnect/close the browser
             await page.close();
-            browser.disconnect();
+            if (this.useDirectLaunch) {
+                await browser.close();
+            }
+            else {
+                browser.disconnect();
+            }
             return resumeUrl;
         }
         catch (error) {
@@ -14107,12 +14201,21 @@ let PrinterService = PrinterService_1 = class PrinterService {
                 this.logger.warn(`Error closing page: ${closeError.message}`);
             }
             try {
-                if (browser && browser.isConnected()) {
-                    browser.disconnect();
+                if (browser) {
+                    if (this.useDirectLaunch) {
+                        // For launched browsers, just close (isConnected() may not work the same way)
+                        await browser.close();
+                    }
+                    else {
+                        // For connected browsers, check connection before disconnecting
+                        if (browser.isConnected()) {
+                            browser.disconnect();
+                        }
+                    }
                 }
             }
             catch (disconnectError) {
-                this.logger.warn(`Error disconnecting browser: ${disconnectError.message}`);
+                this.logger.warn(`Error closing/disconnecting browser: ${disconnectError.message}`);
             }
             // Re-throw the error so retry mechanism can work
             throw error;
@@ -14140,7 +14243,9 @@ let PrinterService = PrinterService_1 = class PrinterService {
             let url = this.utils.getUrl();
             const publicUrl = this.configService.getOrThrow("PUBLIC_URL");
             const storageUrl = this.configService.getOrThrow("STORAGE_URL");
-            if ([publicUrl, storageUrl].some((url) => url.includes("localhost"))) {
+            // Only replace localhost with host.docker.internal if browser is running in Docker (remote Chrome)
+            // When using direct launch (browser on same machine), keep localhost as-is
+            if (!this.useDirectLaunch && [publicUrl, storageUrl].some((url) => url.includes("localhost"))) {
                 // Switch client URL from `localhost` to `host.docker.internal` in development
                 // This is required because the browser is running in a container and the client is running on the host machine.
                 url = url.replace("localhost", "host.docker.internal");
@@ -14184,9 +14289,14 @@ let PrinterService = PrinterService_1 = class PrinterService {
             const buffer = await page.screenshot({ quality: 80, type: "jpeg" });
             // Generate a hash digest of the resume data, this hash will be used to check if the resume has been updated
             const previewUrl = await this.storageService.uploadObject(resume.userId, "previews", buffer, resume.id);
-            // Close all the pages and disconnect from the browser
+            // Close all the pages and disconnect/close the browser
             await page.close();
-            browser.disconnect();
+            if (this.useDirectLaunch) {
+                await browser.close();
+            }
+            else {
+                browser.disconnect();
+            }
             return previewUrl;
         }
         catch (error) {
@@ -14201,12 +14311,21 @@ let PrinterService = PrinterService_1 = class PrinterService {
                 this.logger.warn(`Error closing page: ${closeError.message}`);
             }
             try {
-                if (browser && browser.isConnected()) {
-                    browser.disconnect();
+                if (browser) {
+                    if (this.useDirectLaunch) {
+                        // For launched browsers, just close (isConnected() may not work the same way)
+                        await browser.close();
+                    }
+                    else {
+                        // For connected browsers, check connection before disconnecting
+                        if (browser.isConnected()) {
+                            browser.disconnect();
+                        }
+                    }
                 }
             }
             catch (disconnectError) {
-                this.logger.warn(`Error disconnecting browser: ${disconnectError.message}`);
+                this.logger.warn(`Error closing/disconnecting browser: ${disconnectError.message}`);
             }
             // Re-throw the error so retry mechanism can work
             throw error;
@@ -14246,6 +14365,12 @@ module.exports = require("puppeteer");
 
 /***/ }),
 /* 152 */
+/***/ ((module) => {
+
+module.exports = require("fs");
+
+/***/ }),
+/* 153 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -14279,7 +14404,7 @@ exports.BrowserHealthIndicator = BrowserHealthIndicator = tslib_1.__decorate([
 
 
 /***/ }),
-/* 153 */
+/* 154 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -14313,7 +14438,7 @@ exports.DatabaseHealthIndicator = DatabaseHealthIndicator = tslib_1.__decorate([
 
 
 /***/ }),
-/* 154 */
+/* 155 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -14328,9 +14453,9 @@ const nestjs_redis_1 = __webpack_require__(33);
 const nestjs_redis_health_1 = __webpack_require__(145);
 const schema_1 = __webpack_require__(137);
 const utils_service_1 = __webpack_require__(114);
-const browser_health_1 = __webpack_require__(152);
-const database_health_1 = __webpack_require__(153);
-const storage_health_1 = __webpack_require__(155);
+const browser_health_1 = __webpack_require__(153);
+const database_health_1 = __webpack_require__(154);
+const storage_health_1 = __webpack_require__(156);
 let HealthController = class HealthController {
     constructor(health, database, browser, storage, redisService, redis, utils) {
         this.health = health;
@@ -14386,7 +14511,7 @@ exports.HealthController = HealthController = tslib_1.__decorate([
 
 
 /***/ }),
-/* 155 */
+/* 156 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -14420,7 +14545,7 @@ exports.StorageHealthIndicator = StorageHealthIndicator = tslib_1.__decorate([
 
 
 /***/ }),
-/* 156 */
+/* 157 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -14431,8 +14556,8 @@ const common_1 = __webpack_require__(2);
 const auth_module_1 = __webpack_require__(16);
 const printer_module_1 = __webpack_require__(146);
 const storage_module_1 = __webpack_require__(25);
-const resume_controller_1 = __webpack_require__(157);
-const resume_service_1 = __webpack_require__(163);
+const resume_controller_1 = __webpack_require__(158);
+const resume_service_1 = __webpack_require__(164);
 let ResumeModule = class ResumeModule {
 };
 exports.ResumeModule = ResumeModule;
@@ -14447,7 +14572,7 @@ exports.ResumeModule = ResumeModule = tslib_1.__decorate([
 
 
 /***/ }),
-/* 157 */
+/* 158 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -14457,19 +14582,19 @@ exports.ResumeController = void 0;
 const tslib_1 = __webpack_require__(1);
 const common_1 = __webpack_require__(2);
 const swagger_1 = __webpack_require__(5);
-const client_1 = __webpack_require__(158);
+const client_1 = __webpack_require__(159);
 const library_1 = __webpack_require__(36);
 const dto_1 = __webpack_require__(37);
 const schema_1 = __webpack_require__(46);
 const utils_1 = __webpack_require__(82);
-const zod_to_json_schema_1 = __webpack_require__(159);
+const zod_to_json_schema_1 = __webpack_require__(160);
 const user_decorator_1 = __webpack_require__(30);
-const optional_guard_1 = __webpack_require__(160);
+const optional_guard_1 = __webpack_require__(161);
 const two_factor_guard_1 = __webpack_require__(29);
 const utils_service_1 = __webpack_require__(114);
-const resume_decorator_1 = __webpack_require__(161);
-const resume_guard_1 = __webpack_require__(162);
-const resume_service_1 = __webpack_require__(163);
+const resume_decorator_1 = __webpack_require__(162);
+const resume_guard_1 = __webpack_require__(163);
+const resume_service_1 = __webpack_require__(164);
 let ResumeController = class ResumeController {
     constructor(resumeService, utils) {
         this.resumeService = resumeService;
@@ -14658,19 +14783,19 @@ exports.ResumeController = ResumeController = tslib_1.__decorate([
 
 
 /***/ }),
-/* 158 */
+/* 159 */
 /***/ ((module) => {
 
 module.exports = require("@prisma/client");
 
 /***/ }),
-/* 159 */
+/* 160 */
 /***/ ((module) => {
 
 module.exports = require("zod-to-json-schema");
 
 /***/ }),
-/* 160 */
+/* 161 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -14691,7 +14816,7 @@ exports.OptionalGuard = OptionalGuard = tslib_1.__decorate([
 
 
 /***/ }),
-/* 161 */
+/* 162 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -14706,7 +14831,7 @@ exports.Resume = (0, common_1.createParamDecorator)((data, ctx) => {
 
 
 /***/ }),
-/* 162 */
+/* 163 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -14716,7 +14841,7 @@ exports.ResumeGuard = void 0;
 const tslib_1 = __webpack_require__(1);
 const common_1 = __webpack_require__(2);
 const utils_1 = __webpack_require__(82);
-const resume_service_1 = __webpack_require__(163);
+const resume_service_1 = __webpack_require__(164);
 let ResumeGuard = class ResumeGuard {
     constructor(resumeService) {
         this.resumeService = resumeService;
@@ -14755,7 +14880,7 @@ exports.ResumeGuard = ResumeGuard = tslib_1.__decorate([
 
 
 /***/ }),
-/* 163 */
+/* 164 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -14768,7 +14893,7 @@ const schema_1 = __webpack_require__(46);
 const utils_1 = __webpack_require__(82);
 const utils_2 = __webpack_require__(82);
 const nestjs_redis_1 = __webpack_require__(33);
-const deepmerge_1 = tslib_1.__importDefault(__webpack_require__(164));
+const deepmerge_1 = tslib_1.__importDefault(__webpack_require__(165));
 const nestjs_prisma_1 = __webpack_require__(10);
 const printer_service_1 = __webpack_require__(147);
 const storage_service_1 = __webpack_require__(31);
@@ -14928,13 +15053,13 @@ exports.ResumeService = ResumeService = tslib_1.__decorate([
 
 
 /***/ }),
-/* 164 */
+/* 165 */
 /***/ ((module) => {
 
 module.exports = require("deepmerge");
 
 /***/ }),
-/* 165 */
+/* 166 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -14943,8 +15068,8 @@ exports.TranslationModule = void 0;
 const tslib_1 = __webpack_require__(1);
 const axios_1 = __webpack_require__(139);
 const common_1 = __webpack_require__(2);
-const translation_controller_1 = __webpack_require__(166);
-const translation_service_1 = __webpack_require__(167);
+const translation_controller_1 = __webpack_require__(167);
+const translation_service_1 = __webpack_require__(168);
 let TranslationModule = class TranslationModule {
 };
 exports.TranslationModule = TranslationModule;
@@ -14958,7 +15083,7 @@ exports.TranslationModule = TranslationModule = tslib_1.__decorate([
 
 
 /***/ }),
-/* 166 */
+/* 167 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -14968,7 +15093,7 @@ exports.TranslationController = void 0;
 const tslib_1 = __webpack_require__(1);
 const common_1 = __webpack_require__(2);
 const utils_service_1 = __webpack_require__(114);
-const translation_service_1 = __webpack_require__(167);
+const translation_service_1 = __webpack_require__(168);
 let TranslationController = class TranslationController {
     constructor(translationService, utils) {
         this.translationService = translationService;
@@ -14992,7 +15117,7 @@ exports.TranslationController = TranslationController = tslib_1.__decorate([
 
 
 /***/ }),
-/* 167 */
+/* 168 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -15051,7 +15176,7 @@ exports.TranslationService = TranslationService = tslib_1.__decorate([
 
 
 /***/ }),
-/* 168 */
+/* 169 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -15073,7 +15198,7 @@ exports.UtilsModule = UtilsModule = tslib_1.__decorate([
 
 
 /***/ }),
-/* 169 */
+/* 170 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -15196,15 +15321,16 @@ async function bootstrap() {
     }
     // Compression - Enable gzip compression for faster response times
     if (process.env.NODE_ENV === "production") {
+        const compressionFilter = (req, res) => {
+            // Compress all responses except if explicitly disabled
+            if (req.headers["x-no-compression"]) {
+                return false;
+            }
+            return compression_1.default.filter(req, res);
+        };
         app.use((0, compression_1.default)({
             level: 6, // Compression level (1-9, 6 is a good balance)
-            filter: (req, res) => {
-                // Compress all responses except if explicitly disabled
-                if (req.headers["x-no-compression"]) {
-                    return false;
-                }
-                return compression_1.default.filter(req, res);
-            },
+            filter: compressionFilter,
         }));
     }
     // Cookie Parser

@@ -9,6 +9,8 @@ import { ErrorMessage } from "@reactive-resume/utils";
 import retry from "async-retry";
 import { PDFDocument } from "pdf-lib";
 import { connect, launch, Browser, Page } from "puppeteer";
+import * as fs from "fs";
+import * as path from "path";
 
 import { Config } from "../config/schema";
 import { StorageService } from "../storage/storage.service";
@@ -29,53 +31,104 @@ export class PrinterService {
     private readonly utils: UtilsService,
   ) {
     // Check if BROWSER_EXECUTABLE_PATH is set (preferred method)
-    const executablePath = this.configService.get<string>("BROWSER_EXECUTABLE_PATH");
+    let executablePath = this.configService.get<string>("BROWSER_EXECUTABLE_PATH");
     
     if (executablePath) {
       this.browserExecutablePath = executablePath;
       this.useDirectLaunch = true;
       this.logger.log(`Using direct Chrome launch with executable: ${executablePath}`);
     } else {
-      // Fall back to remote Chrome connection (backward compatibility)
-      const chromeUrl = this.configService.get<string>("CHROME_URL");
-      const chromeToken = this.configService.get<string>("CHROME_TOKEN");
-      
-      if (!chromeUrl || !chromeToken) {
-        throw new Error(
-          "Either BROWSER_EXECUTABLE_PATH or both CHROME_URL and CHROME_TOKEN must be configured",
-        );
+      // Try to auto-detect Chrome on Windows
+      const detectedPath = this.detectChromePath();
+      if (detectedPath) {
+        this.browserExecutablePath = detectedPath;
+        this.useDirectLaunch = true;
+        this.logger.log(`Auto-detected Chrome at: ${detectedPath}`);
+      } else {
+        // Fall back to remote Chrome connection (backward compatibility)
+        const chromeUrl = this.configService.get<string>("CHROME_URL");
+        const chromeToken = this.configService.get<string>("CHROME_TOKEN");
+        
+        if (!chromeUrl || !chromeToken) {
+          this.logger.error(
+            "Browser configuration error: Either BROWSER_EXECUTABLE_PATH or both CHROME_URL and CHROME_TOKEN must be configured. " +
+            "On Windows, Chrome is typically located at: C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe or " +
+            "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe"
+          );
+          throw new Error(
+            "Either BROWSER_EXECUTABLE_PATH or both CHROME_URL and CHROME_TOKEN must be configured",
+          );
+        }
+        
+        this.browserURL = `${chromeUrl}?token=${chromeToken}`;
+        this.useDirectLaunch = false;
+        this.logger.log(`Using remote Chrome connection: ${chromeUrl}`);
       }
-      
-      this.browserURL = `${chromeUrl}?token=${chromeToken}`;
-      this.useDirectLaunch = false;
-      this.logger.log(`Using remote Chrome connection: ${chromeUrl}`);
     }
+  }
+
+  /**
+   * Attempts to detect Chrome installation path on Windows
+   */
+  private detectChromePath(): string | null {
+    if (process.platform !== "win32") {
+      return null;
+    }
+
+    const possiblePaths = [
+      "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+      "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
+      path.join(process.env.LOCALAPPDATA || "", "Google", "Chrome", "Application", "chrome.exe"),
+      path.join(process.env.PROGRAMFILES || "", "Google", "Chrome", "Application", "chrome.exe"),
+      path.join(process.env["PROGRAMFILES(X86)"] || "", "Google", "Chrome", "Application", "chrome.exe"),
+    ];
+
+    for (const chromePath of possiblePaths) {
+      if (fs.existsSync(chromePath)) {
+        return chromePath;
+      }
+    }
+
+    return null;
   }
 
   private async getBrowser() {
     try {
       if (this.useDirectLaunch && this.browserExecutablePath) {
         // Launch Chrome directly using executable path
+        this.logger.debug(`Attempting to launch Chrome from: ${this.browserExecutablePath}`);
+        
+        // Platform-specific Chrome launch arguments
+        const baseArgs = [
+          "--no-sandbox",
+          "--disable-dev-shm-usage",
+          "--disable-gpu",
+        ];
+        
+        // Linux-specific flags (not needed on Windows/Mac)
+        if (process.platform === "linux") {
+          baseArgs.push("--disable-setuid-sandbox", "--single-process", "--no-zygote");
+        }
+        
         return await launch({
           executablePath: this.browserExecutablePath,
           headless: 'new',
-          args: [
-            "--no-sandbox",
-            "--disable-setuid-sandbox",
-            "--disable-dev-shm-usage",
-            "--disable-gpu",
-            "--single-process",
-            "--no-zygote",
-          ],
+          args: baseArgs,
         });
       } else if (this.browserURL) {
         // Connect to remote Chrome instance
+        this.logger.debug(`Attempting to connect to Chrome at: ${this.browserURL}`);
         return await connect({ browserWSEndpoint: this.browserURL });
       } else {
-        throw new Error("Browser configuration is invalid");
+        throw new Error("Browser configuration is invalid. Either BROWSER_EXECUTABLE_PATH or both CHROME_URL and CHROME_TOKEN must be configured");
       }
     } catch (error) {
-      throw new InternalServerErrorException(ErrorMessage.InvalidBrowserConnection, error.message);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Failed to get browser: ${errorMessage}`, error instanceof Error ? error.stack : undefined);
+      throw new InternalServerErrorException(
+        ErrorMessage.InvalidBrowserConnection,
+        `Failed to connect to browser: ${errorMessage}. Please check your browser configuration.`
+      );
     }
   }
 
@@ -168,7 +221,9 @@ export class PrinterService {
       const publicUrl = this.configService.getOrThrow<string>("PUBLIC_URL");
       const storageUrl = this.configService.getOrThrow<string>("STORAGE_URL");
 
-      if ([publicUrl, storageUrl].some((url) => url.includes("localhost"))) {
+      // Only replace localhost with host.docker.internal if browser is running in Docker (remote Chrome)
+      // When using direct launch (browser on same machine), keep localhost as-is
+      if (!this.useDirectLaunch && [publicUrl, storageUrl].some((url) => url.includes("localhost"))) {
         // Switch client URL from `localhost` to `host.docker.internal` in development
         // This is required because the browser is running in a container and the client is running on the host machine.
         url = url.replace("localhost", "host.docker.internal");
@@ -194,11 +249,25 @@ export class PrinterService {
         window.localStorage.setItem("resume", JSON.stringify(data));
       }, resume.data);
 
-      // Use a reliable waitUntil option with timeout
-      await page.goto(`${url}/artboard/preview`, {
-        waitUntil: ['load', 'domcontentloaded'],
-        timeout: 60000,
-      });
+      // Use a more reliable waitUntil option with timeout
+      // Try networkidle0 first, but fallback to load if it times out
+      try {
+        await page.goto(`${url}/artboard/preview`, {
+          waitUntil: "networkidle0",
+          timeout: 60000,
+        });
+      } catch (navigationError) {
+        this.logger.warn(
+          `Navigation with networkidle0 failed, retrying with load: ${navigationError.message}`,
+        );
+        // Fallback to 'load' which is more reliable
+        await page.goto(`${url}/artboard/preview`, {
+          waitUntil: "load",
+          timeout: 60000,
+        });
+        // Wait a bit for any remaining network activity
+        await page.waitForTimeout(2000);
+      }
 
       if (!page) {
         throw new Error("Page is not initialized");
@@ -339,7 +408,9 @@ export class PrinterService {
       const publicUrl = this.configService.getOrThrow<string>("PUBLIC_URL");
       const storageUrl = this.configService.getOrThrow<string>("STORAGE_URL");
 
-      if ([publicUrl, storageUrl].some((url) => url.includes("localhost"))) {
+      // Only replace localhost with host.docker.internal if browser is running in Docker (remote Chrome)
+      // When using direct launch (browser on same machine), keep localhost as-is
+      if (!this.useDirectLaunch && [publicUrl, storageUrl].some((url) => url.includes("localhost"))) {
         // Switch client URL from `localhost` to `host.docker.internal` in development
         // This is required because the browser is running in a container and the client is running on the host machine.
         url = url.replace("localhost", "host.docker.internal");
@@ -365,11 +436,25 @@ export class PrinterService {
 
       await page.setViewport({ width: 794, height: 1123 });
 
-      // Use a reliable waitUntil option with timeout
-      await page.goto(`${url}/artboard/preview`, {
-        waitUntil: ['load', 'domcontentloaded'],
-        timeout: 60000,
-      });
+      // Use a more reliable waitUntil option with timeout
+      // Try networkidle0 first, but fallback to load if it times out
+      try {
+        await page.goto(`${url}/artboard/preview`, {
+          waitUntil: "networkidle0",
+          timeout: 60000,
+        });
+      } catch (navigationError) {
+        this.logger.warn(
+          `Navigation with networkidle0 failed, retrying with load: ${navigationError.message}`,
+        );
+        // Fallback to 'load' which is more reliable
+        await page.goto(`${url}/artboard/preview`, {
+          waitUntil: "load",
+          timeout: 60000,
+        });
+        // Wait a bit for any remaining network activity
+        await page.waitForTimeout(2000);
+      }
 
       // Save the JPEG to storage and return the URL
       // Store the URL in cache for future requests, under the previously generated hash digest
