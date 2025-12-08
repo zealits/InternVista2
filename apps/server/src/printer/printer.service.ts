@@ -8,7 +8,7 @@ import { getFontUrls } from "@reactive-resume/utils";
 import { ErrorMessage } from "@reactive-resume/utils";
 import retry from "async-retry";
 import { PDFDocument } from "pdf-lib";
-import { connect } from "puppeteer";
+import { connect, Browser, Page } from "puppeteer";
 
 import { Config } from "../config/schema";
 import { StorageService } from "../storage/storage.service";
@@ -97,9 +97,28 @@ export class PrinterService {
   }
 
   async generateResume(resume: ResumeDto) {
+    let browser: Browser | undefined;
+    let page: Page | undefined;
     try {
-      const browser = await this.getBrowser();
-      const page = await browser.newPage();
+      browser = await this.getBrowser();
+      page = await browser.newPage();
+
+      // Set timeouts to prevent hanging
+      page.setDefaultNavigationTimeout(60000); // 60 seconds
+      page.setDefaultTimeout(60000);
+
+      // Add error handlers to detect page/browser closure
+      page.on("error", (error) => {
+        this.logger.error(`Page error: ${error.message}`);
+      });
+
+      page.on("close", () => {
+        this.logger.warn("Page was closed unexpectedly");
+      });
+
+      browser.on("disconnected", () => {
+        this.logger.warn("Browser was disconnected unexpectedly");
+      });
 
       let url = this.utils.getUrl();
       const publicUrl = this.configService.getOrThrow<string>("PUBLIC_URL");
@@ -131,32 +150,54 @@ export class PrinterService {
         window.localStorage.setItem("resume", JSON.stringify(data));
       }, resume.data);
 
-      await page.goto(`${url}/artboard/preview`, { waitUntil: "networkidle0" });
+      // Use a more reliable waitUntil option with timeout
+      // Try networkidle0 first, but fallback to load if it times out
+      try {
+        await page.goto(`${url}/artboard/preview`, {
+          waitUntil: "networkidle0",
+          timeout: 60000,
+        });
+      } catch (navigationError) {
+        this.logger.warn(
+          `Navigation with networkidle0 failed, retrying with load: ${navigationError.message}`,
+        );
+        // Fallback to 'load' which is more reliable
+        await page.goto(`${url}/artboard/preview`, {
+          waitUntil: "load",
+          timeout: 60000,
+        });
+        // Wait a bit for any remaining network activity
+        await page.waitForTimeout(2000);
+      }
+
+      if (!page) {
+        throw new Error("Page is not initialized");
+      }
 
       const pagesBuffer: Buffer[] = [];
 
-      const processPage = async (index: number) => {
-        const pageElement = await page.$(`[data-page="${index}"]`);
+      const processPage = async (pageInstance: Page, index: number) => {
+        const pageElement = await pageInstance.$(`[data-page="${index}"]`);
         const width = (await (await pageElement?.getProperty("scrollWidth"))?.jsonValue()) ?? 0;
         const height = (await (await pageElement?.getProperty("scrollHeight"))?.jsonValue()) ?? 0;
 
-        const tempHtml = await page.evaluate((element: HTMLDivElement) => {
+        const tempHtml = await pageInstance.evaluate((element: HTMLDivElement) => {
           const clonedElement = element.cloneNode(true) as HTMLDivElement;
           const tempHtml = document.body.innerHTML;
           document.body.innerHTML = `${clonedElement.outerHTML}`;
           return tempHtml;
         }, pageElement);
 
-        pagesBuffer.push(await page.pdf({ width, height, printBackground: true }));
+        pagesBuffer.push(await pageInstance.pdf({ width, height, printBackground: true }));
 
-        await page.evaluate((tempHtml: string) => {
+        await pageInstance.evaluate((tempHtml: string) => {
           document.body.innerHTML = tempHtml;
         }, tempHtml);
       };
 
       // Loop through all the pages and print them, by first displaying them, printing the PDF and then hiding them back
       for (let index = 1; index <= numPages; index++) {
-        await processPage(index);
+        await processPage(page, index);
       }
 
       // Using 'pdf-lib', merge all the pages from their buffers into a single PDF
@@ -181,8 +222,8 @@ export class PrinterService {
       await Promise.all(fontsBuffer.map((buffer) => pdf.embedFont(buffer)));
 
       for (let index = 0; index < pagesBuffer.length; index++) {
-        const page = await PDFDocument.load(pagesBuffer[index]);
-        const [copiedPage] = await pdf.copyPages(page, [0]);
+        const pdfPage = await PDFDocument.load(new Uint8Array(pagesBuffer[index]));
+        const [copiedPage] = await pdf.copyPages(pdfPage, [0]);
         pdf.addPage(copiedPage);
       }
 
@@ -204,62 +245,143 @@ export class PrinterService {
 
       return resumeUrl;
     } catch (error) {
-      console.trace(error);
+      this.logger.error(`Error generating resume: ${error.message}`, error.stack);
+      
+      // Ensure cleanup even on error
+      try {
+        if (page && !page.isClosed()) {
+          await page.close();
+        }
+      } catch (closeError) {
+        this.logger.warn(`Error closing page: ${closeError.message}`);
+      }
+      
+      try {
+        if (browser && browser.isConnected()) {
+          browser.disconnect();
+        }
+      } catch (disconnectError) {
+        this.logger.warn(`Error disconnecting browser: ${disconnectError.message}`);
+      }
+      
+      // Re-throw the error so retry mechanism can work
+      throw error;
     }
   }
 
   async generatePreview(resume: ResumeDto) {
-    const browser = await this.getBrowser();
-    const page = await browser.newPage();
+    let browser: Browser | undefined;
+    let page: Page | undefined;
+    try {
+      browser = await this.getBrowser();
+      page = await browser.newPage();
 
-    let url = this.utils.getUrl();
-    const publicUrl = this.configService.getOrThrow<string>("PUBLIC_URL");
-    const storageUrl = this.configService.getOrThrow<string>("STORAGE_URL");
+      // Set timeouts to prevent hanging
+      page.setDefaultNavigationTimeout(60000); // 60 seconds
+      page.setDefaultTimeout(60000);
 
-    if ([publicUrl, storageUrl].some((url) => url.includes("localhost"))) {
-      // Switch client URL from `localhost` to `host.docker.internal` in development
-      // This is required because the browser is running in a container and the client is running on the host machine.
-      url = url.replace("localhost", "host.docker.internal");
-
-      await page.setRequestInterception(true);
-
-      // Intercept requests of `localhost` to `host.docker.internal` in development
-      page.on("request", (request) => {
-        if (request.url().startsWith(storageUrl)) {
-          const modifiedUrl = request.url().replace("localhost", `host.docker.internal`);
-
-          request.continue({ url: modifiedUrl });
-        } else {
-          request.continue();
-        }
+      // Add error handlers to detect page/browser closure
+      page.on("error", (error) => {
+        this.logger.error(`Page error: ${error.message}`);
       });
+
+      page.on("close", () => {
+        this.logger.warn("Page was closed unexpectedly");
+      });
+
+      browser.on("disconnected", () => {
+        this.logger.warn("Browser was disconnected unexpectedly");
+      });
+
+      let url = this.utils.getUrl();
+      const publicUrl = this.configService.getOrThrow<string>("PUBLIC_URL");
+      const storageUrl = this.configService.getOrThrow<string>("STORAGE_URL");
+
+      if ([publicUrl, storageUrl].some((url) => url.includes("localhost"))) {
+        // Switch client URL from `localhost` to `host.docker.internal` in development
+        // This is required because the browser is running in a container and the client is running on the host machine.
+        url = url.replace("localhost", "host.docker.internal");
+
+        await page.setRequestInterception(true);
+
+        // Intercept requests of `localhost` to `host.docker.internal` in development
+        page.on("request", (request) => {
+          if (request.url().startsWith(storageUrl)) {
+            const modifiedUrl = request.url().replace("localhost", `host.docker.internal`);
+
+            request.continue({ url: modifiedUrl });
+          } else {
+            request.continue();
+          }
+        });
+      }
+
+      // Set the data of the resume to be printed in the browser's session storage
+      await page.evaluateOnNewDocument((data) => {
+        window.localStorage.setItem("resume", JSON.stringify(data));
+      }, resume.data);
+
+      await page.setViewport({ width: 794, height: 1123 });
+
+      // Use a more reliable waitUntil option with timeout
+      // Try networkidle0 first, but fallback to load if it times out
+      try {
+        await page.goto(`${url}/artboard/preview`, {
+          waitUntil: "networkidle0",
+          timeout: 60000,
+        });
+      } catch (navigationError) {
+        this.logger.warn(
+          `Navigation with networkidle0 failed, retrying with load: ${navigationError.message}`,
+        );
+        // Fallback to 'load' which is more reliable
+        await page.goto(`${url}/artboard/preview`, {
+          waitUntil: "load",
+          timeout: 60000,
+        });
+        // Wait a bit for any remaining network activity
+        await page.waitForTimeout(2000);
+      }
+
+      // Save the JPEG to storage and return the URL
+      // Store the URL in cache for future requests, under the previously generated hash digest
+      const buffer = await page.screenshot({ quality: 80, type: "jpeg" });
+
+      // Generate a hash digest of the resume data, this hash will be used to check if the resume has been updated
+      const previewUrl = await this.storageService.uploadObject(
+        resume.userId,
+        "previews",
+        buffer,
+        resume.id,
+      );
+
+      // Close all the pages and disconnect from the browser
+      await page.close();
+      browser.disconnect();
+
+      return previewUrl;
+    } catch (error) {
+      this.logger.error(`Error generating preview: ${error.message}`, error.stack);
+      
+      // Ensure cleanup even on error
+      try {
+        if (page && !page.isClosed()) {
+          await page.close();
+        }
+      } catch (closeError) {
+        this.logger.warn(`Error closing page: ${closeError.message}`);
+      }
+      
+      try {
+        if (browser && browser.isConnected()) {
+          browser.disconnect();
+        }
+      } catch (disconnectError) {
+        this.logger.warn(`Error disconnecting browser: ${disconnectError.message}`);
+      }
+      
+      // Re-throw the error so retry mechanism can work
+      throw error;
     }
-
-    // Set the data of the resume to be printed in the browser's session storage
-    await page.evaluateOnNewDocument((data) => {
-      window.localStorage.setItem("resume", JSON.stringify(data));
-    }, resume.data);
-
-    await page.setViewport({ width: 794, height: 1123 });
-
-    await page.goto(`${url}/artboard/preview`, { waitUntil: "networkidle0" });
-
-    // Save the JPEG to storage and return the URL
-    // Store the URL in cache for future requests, under the previously generated hash digest
-    const buffer = await page.screenshot({ quality: 80, type: "jpeg" });
-
-    // Generate a hash digest of the resume data, this hash will be used to check if the resume has been updated
-    const previewUrl = await this.storageService.uploadObject(
-      resume.userId,
-      "previews",
-      buffer,
-      resume.id,
-    );
-
-    // Close all the pages and disconnect from the browser
-    await page.close();
-    browser.disconnect();
-
-    return previewUrl;
   }
 }
