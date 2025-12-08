@@ -14053,7 +14053,8 @@ let PrinterService = PrinterService_1 = class PrinterService {
             const numPages = resume.data.metadata.layout.length;
             this.logger.debug(`Chrome took ${duration}ms to print ${numPages} page(s)`);
             return url;
-        });
+        }, 1000 * 60 * 60 * 24, // 24 hours TTL
+        "string");
     }
     async printPreview(resume) {
         return this.utils.getCachedOrSet(`user:${resume.userId}:storage:previews:${resume.id}`, async () => {
@@ -14068,7 +14069,8 @@ let PrinterService = PrinterService_1 = class PrinterService {
             const duration = Number(performance.now() - start).toFixed(0);
             this.logger.debug(`Chrome took ${duration}ms to generate preview`);
             return url;
-        });
+        }, 1000 * 60 * 60 * 24, // 24 hours TTL
+        "string");
     }
     async generateResume(resume) {
         let browser;

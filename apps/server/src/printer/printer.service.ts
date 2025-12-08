@@ -165,6 +165,8 @@ export class PrinterService {
 
         return url;
       },
+      1000 * 60 * 60 * 24, // 24 hours TTL
+      "string", // Use "string" type to match how uploadObject stores the URL
     );
   }
 
@@ -190,6 +192,8 @@ export class PrinterService {
 
         return url;
       },
+      1000 * 60 * 60 * 24, // 24 hours TTL
+      "string", // Use "string" type to match how uploadObject stores the URL
     );
   }
 
