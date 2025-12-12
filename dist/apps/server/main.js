@@ -14682,6 +14682,27 @@ let PrinterService = PrinterService_1 = class PrinterService {
         }
         return null;
     }
+    /**
+     * Extracts server IP from a URL, or returns null if not found
+     */
+    getServerIpFromUrl(url) {
+        try {
+            const urlObj = new URL(url);
+            const hostname = urlObj.hostname;
+            // If hostname is already an IP address (IPv4), return it
+            if (/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(hostname)) {
+                return hostname;
+            }
+            // If hostname is not localhost, return it (could be a domain)
+            if (hostname !== "localhost" && hostname !== "127.0.0.1") {
+                return hostname;
+            }
+            return null;
+        }
+        catch {
+            return null;
+        }
+    }
     async getBrowser() {
         try {
             if (this.useDirectLaunch && this.browserExecutablePath) {
@@ -14826,10 +14847,9 @@ let PrinterService = PrinterService_1 = class PrinterService {
             const publicUrl = this.configService.getOrThrow("PUBLIC_URL");
             const storageUrl = this.configService.getOrThrow("STORAGE_URL");
             this.logger.debug(`Resolved client URL: ${url}, will navigate to: ${url}/artboard/preview`);
-            // Only replace localhost with host.docker.internal if browser is running in Docker (remote Chrome)
-            // When using direct launch (browser on same machine), keep localhost as-is
+            // Handle URL resolution for different browser launch modes
             if (!this.useDirectLaunch && [publicUrl, storageUrl].some((url) => url.includes("localhost"))) {
-                // Switch client URL from `localhost` to `host.docker.internal` in development
+                // Remote Chrome (Docker): Replace localhost with host.docker.internal
                 // This is required because the browser is running in a container and the client is running on the host machine.
                 url = url.replace("localhost", "host.docker.internal");
                 this.logger.debug(`Modified URL for Docker: ${url}`);
@@ -14844,6 +14864,20 @@ let PrinterService = PrinterService_1 = class PrinterService {
                         request.continue();
                     }
                 });
+            }
+            else if (this.useDirectLaunch && url.includes("localhost")) {
+                // Direct launch: If PUBLIC_URL contains localhost, try to resolve it to the server's IP
+                // This handles cases where localhost doesn't resolve correctly from Chrome's perspective
+                // Extract the IP from PUBLIC_URL if it's already set, otherwise try to detect server IP
+                const serverIp = this.getServerIpFromUrl(publicUrl);
+                if (serverIp && serverIp !== "localhost") {
+                    url = url.replace("localhost", serverIp);
+                    this.logger.debug(`Modified URL from localhost to server IP: ${url}`);
+                }
+                else {
+                    this.logger.warn(`PUBLIC_URL contains 'localhost' but couldn't resolve server IP. ` +
+                        `If Chrome cannot connect, set PUBLIC_URL to use your server's IP address (e.g., PUBLIC_URL=http://YOUR_SERVER_IP:3000)`);
+                }
             }
             // Set the data of the resume to be printed in the browser's session storage
             const numPages = resume.data.metadata.layout.length;
