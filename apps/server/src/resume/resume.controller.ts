@@ -136,10 +136,27 @@ export class ResumeController {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       const errorStack = error instanceof Error ? error.stack : undefined;
+      
+      // Log detailed error information
       Logger.error(
         `Failed to print resume #${resume.id}. Error: ${errorMessage}`,
         errorStack,
       );
+      
+      // Check if it's a browser configuration error
+      if (errorMessage.includes("Browser configuration") || 
+          errorMessage.includes("browser") || 
+          errorMessage.includes("Chrome") ||
+          errorMessage.includes("ECONNREFUSED") ||
+          errorMessage.includes("ENOENT")) {
+        Logger.error(
+          `Browser configuration issue detected. Please verify: ` +
+          `1. BROWSER_EXECUTABLE_PATH is set correctly, OR ` +
+          `2. CHROME_URL and CHROME_TOKEN are configured for remote Chrome service. ` +
+          `Current error: ${errorMessage}`
+        );
+      }
+      
       throw new InternalServerErrorException(
         error instanceof Error ? error.message : String(error),
       );

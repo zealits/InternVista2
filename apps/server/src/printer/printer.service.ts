@@ -38,25 +38,43 @@ export class PrinterService {
       this.useDirectLaunch = true;
       this.logger.log(`Using direct Chrome launch with executable: ${executablePath}`);
     } else {
-      // Try to auto-detect Chrome on Windows
+      // Try to auto-detect Chrome/Chromium
       const detectedPath = this.detectChromePath();
       if (detectedPath) {
         this.browserExecutablePath = detectedPath;
         this.useDirectLaunch = true;
-        this.logger.log(`Auto-detected Chrome at: ${detectedPath}`);
+        this.logger.log(`Auto-detected browser at: ${detectedPath}`);
       } else {
         // Fall back to remote Chrome connection (backward compatibility)
         const chromeUrl = this.configService.get<string>("CHROME_URL");
         const chromeToken = this.configService.get<string>("CHROME_TOKEN");
         
         if (!chromeUrl || !chromeToken) {
-          this.logger.error(
-            "Browser configuration error: Either BROWSER_EXECUTABLE_PATH or both CHROME_URL and CHROME_TOKEN must be configured. " +
-            "On Windows, Chrome is typically located at: C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe or " +
-            "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe"
-          );
+          const platform = process.platform;
+          let platformSpecificHelp = "";
+          
+          if (platform === "win32") {
+            platformSpecificHelp = 
+              "On Windows, Chrome is typically located at: C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe or " +
+              "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe";
+          } else if (platform === "linux") {
+            platformSpecificHelp = 
+              "On Linux, install Chrome/Chromium with: sudo apt-get install -y google-chrome-stable (or chromium-browser). " +
+              "Alternatively, use a remote Chrome service (browserless/chrome) with CHROME_URL and CHROME_TOKEN environment variables. " +
+              "Common paths: /usr/bin/google-chrome, /usr/bin/chromium, /usr/bin/chromium-browser";
+          } else if (platform === "darwin") {
+            platformSpecificHelp = 
+              "On macOS, Chrome is typically located at: /Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+          }
+          
+          const errorMessage = 
+            `Browser configuration error: Either BROWSER_EXECUTABLE_PATH or both CHROME_URL and CHROME_TOKEN must be configured. ` +
+            `${platformSpecificHelp}`;
+          
+          this.logger.error(errorMessage);
           throw new Error(
-            "Either BROWSER_EXECUTABLE_PATH or both CHROME_URL and CHROME_TOKEN must be configured",
+            `Browser configuration is missing. ${platformSpecificHelp}. ` +
+            `Set BROWSER_EXECUTABLE_PATH to your Chrome/Chromium path, or configure CHROME_URL and CHROME_TOKEN for remote Chrome service.`
           );
         }
         
@@ -68,23 +86,43 @@ export class PrinterService {
   }
 
   /**
-   * Attempts to detect Chrome installation path on Windows
+   * Attempts to detect Chrome/Chromium installation path on Windows, Linux, and macOS
    */
   private detectChromePath(): string | null {
-    if (process.platform !== "win32") {
-      return null;
-    }
+    const possiblePaths: string[] = [];
 
-    const possiblePaths = [
-      "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
-      "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
-      path.join(process.env.LOCALAPPDATA || "", "Google", "Chrome", "Application", "chrome.exe"),
-      path.join(process.env.PROGRAMFILES || "", "Google", "Chrome", "Application", "chrome.exe"),
-      path.join(process.env["PROGRAMFILES(X86)"] || "", "Google", "Chrome", "Application", "chrome.exe"),
-    ];
+    if (process.platform === "win32") {
+      // Windows paths
+      possiblePaths.push(
+        "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+        "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
+        path.join(process.env.LOCALAPPDATA || "", "Google", "Chrome", "Application", "chrome.exe"),
+        path.join(process.env.PROGRAMFILES || "", "Google", "Chrome", "Application", "chrome.exe"),
+        path.join(process.env["PROGRAMFILES(X86)"] || "", "Google", "Chrome", "Application", "chrome.exe"),
+      );
+    } else if (process.platform === "linux") {
+      // Linux paths (Chrome and Chromium)
+      possiblePaths.push(
+        "/usr/bin/google-chrome",
+        "/usr/bin/google-chrome-stable",
+        "/usr/bin/chromium",
+        "/usr/bin/chromium-browser",
+        "/snap/bin/chromium",
+        "/usr/local/bin/chrome",
+        "/usr/local/bin/chromium",
+        path.join(process.env.HOME || "", ".local", "share", "google-chrome", "chrome"),
+      );
+    } else if (process.platform === "darwin") {
+      // macOS paths
+      possiblePaths.push(
+        "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+        "/Applications/Chromium.app/Contents/MacOS/Chromium",
+      );
+    }
 
     for (const chromePath of possiblePaths) {
       if (fs.existsSync(chromePath)) {
+        this.logger.debug(`Found browser at: ${chromePath}`);
         return chromePath;
       }
     }
@@ -96,7 +134,15 @@ export class PrinterService {
     try {
       if (this.useDirectLaunch && this.browserExecutablePath) {
         // Launch Chrome directly using executable path
-        this.logger.debug(`Attempting to launch Chrome from: ${this.browserExecutablePath}`);
+        this.logger.debug(`Attempting to launch browser from: ${this.browserExecutablePath}`);
+        
+        // Verify executable exists before attempting to launch
+        if (!fs.existsSync(this.browserExecutablePath)) {
+          throw new Error(
+            `Browser executable not found at: ${this.browserExecutablePath}. ` +
+            `Please verify BROWSER_EXECUTABLE_PATH is correct or install Chrome/Chromium.`
+          );
+        }
         
         // Platform-specific Chrome launch arguments
         const baseArgs = [
@@ -110,25 +156,63 @@ export class PrinterService {
           baseArgs.push("--disable-setuid-sandbox", "--single-process", "--no-zygote");
         }
         
-        return await launch({
+        this.logger.debug(`Launching browser with args: ${baseArgs.join(", ")}`);
+        const browser = await launch({
           executablePath: this.browserExecutablePath,
           headless: 'new',
           args: baseArgs,
         });
+        this.logger.debug(`Browser launched successfully`);
+        return browser;
       } else if (this.browserURL) {
         // Connect to remote Chrome instance
-        this.logger.debug(`Attempting to connect to Chrome at: ${this.browserURL}`);
-        return await connect({ browserWSEndpoint: this.browserURL });
+        this.logger.debug(`Attempting to connect to remote Chrome at: ${this.browserURL}`);
+        try {
+          const browser = await connect({ browserWSEndpoint: this.browserURL });
+          this.logger.debug(`Successfully connected to remote Chrome`);
+          return browser;
+        } catch (connectError) {
+          const connectErrorMessage = connectError instanceof Error ? connectError.message : String(connectError);
+          this.logger.error(
+            `Failed to connect to remote Chrome at ${this.browserURL}: ${connectErrorMessage}`,
+            connectError instanceof Error ? connectError.stack : undefined
+          );
+          throw new Error(
+            `Cannot connect to remote Chrome service at ${this.browserURL}. ` +
+            `Please verify CHROME_URL and CHROME_TOKEN are correct and the Chrome service is running. ` +
+            `Error: ${connectErrorMessage}`
+          );
+        }
       } else {
-        throw new Error("Browser configuration is invalid. Either BROWSER_EXECUTABLE_PATH or both CHROME_URL and CHROME_TOKEN must be configured");
+        throw new Error(
+          "Browser configuration is invalid. Either BROWSER_EXECUTABLE_PATH or both CHROME_URL and CHROME_TOKEN must be configured. " +
+          "This error should have been caught during service initialization."
+        );
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      this.logger.error(`Failed to get browser: ${errorMessage}`, error instanceof Error ? error.stack : undefined);
-      throw new InternalServerErrorException(
-        ErrorMessage.InvalidBrowserConnection,
-        `Failed to connect to browser: ${errorMessage}. Please check your browser configuration.`
-      );
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(`Failed to get browser: ${errorMessage}`, errorStack);
+      
+      // Provide more helpful error messages based on error type
+      if (errorMessage.includes("ENOENT") || errorMessage.includes("not found")) {
+        throw new InternalServerErrorException(
+          ErrorMessage.InvalidBrowserConnection,
+          `Browser executable not found. Please verify BROWSER_EXECUTABLE_PATH points to a valid Chrome/Chromium installation, ` +
+          `or configure CHROME_URL and CHROME_TOKEN for remote Chrome service. Original error: ${errorMessage}`
+        );
+      } else if (errorMessage.includes("ECONNREFUSED") || errorMessage.includes("connect")) {
+        throw new InternalServerErrorException(
+          ErrorMessage.InvalidBrowserConnection,
+          `Cannot connect to remote Chrome service. Please verify CHROME_URL and CHROME_TOKEN are correct ` +
+          `and the Chrome service is running and accessible. Original error: ${errorMessage}`
+        );
+      } else {
+        throw new InternalServerErrorException(
+          ErrorMessage.InvalidBrowserConnection,
+          `Failed to connect to browser: ${errorMessage}. Please check your browser configuration.`
+        );
+      }
     }
   }
 
