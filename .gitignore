@@ -53,8 +53,8 @@ stats.html
 libs/prisma
 
 # Environment Variables
-# *.env*
-# !.env.example
+*.env*
+!.env.example
 
 # Lingui Compiled Messages
 apps/client/src/locales/_build/
