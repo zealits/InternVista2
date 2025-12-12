@@ -1,1 +1,0 @@
-{"version":3,"sources":["../../../../../../libs/parser/src/linkedin/schema/skill.ts"],"sourcesContent":["import { z } from \"zod\";\r\n\r\nexport const skillSchema = z.object({\r\n  Name: z.string(),\r\n});\r\n"],"names":["skillSchema","z","object","Name","string"],"mappings":";;;;+BAEaA;;;eAAAA;;;qBAFK;AAEX,MAAMA,cAAcC,MAAC,CAACC,MAAM,CAAC;IAClCC,MAAMF,MAAC,CAACG,MAAM;AAChB"}

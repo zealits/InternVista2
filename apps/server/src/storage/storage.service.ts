@@ -125,6 +125,9 @@ export class StorageService implements OnModuleInit {
     const extension = type === "resumes" ? "pdf" : "jpg";
     const storageUrl = this.configService.get<string>("STORAGE_URL");
     
+    // Log the STORAGE_URL being used for debugging
+    this.logger.log(`[StorageService] STORAGE_URL from config: ${storageUrl || "NOT SET"}`);
+    
     if (!storageUrl) {
       const error = "STORAGE_URL is not configured";
       this.logger.error(error);
@@ -137,6 +140,7 @@ export class StorageService implements OnModuleInit {
     const url = `${normalizedStorageUrl}/${filepath}`;
     
     this.logger.debug(`Uploading ${type} file to: ${filepath}, URL will be: ${url}`);
+    this.logger.log(`[StorageService] Final URL being returned: ${url}`);
     const metadata =
       extension === "jpg"
         ? { "Content-Type": "image/jpeg" }

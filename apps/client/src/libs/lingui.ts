@@ -7,7 +7,10 @@ export const defaultLocale = "en-US";
 
 export async function dynamicActivate(locale: string) {
   try {
-    const { messages } = await import(`../locales/${locale}/messages.po`);
+    // In production, messages are compiled to .js files by the Lingui vite plugin
+    // Use .js extension for production builds, .po for development
+    const extension = import.meta.env.PROD ? '.js' : '.po';
+    const { messages } = await import(`../locales/${locale}/messages${extension}`);
 
     if (messages) {
       i18n.loadAndActivate({ locale, messages });

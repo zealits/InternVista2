@@ -1,1 +1,0 @@
-{"version":3,"sources":["../../../../../libs/schema/src/shared/index.ts"],"sourcesContent":["export * from \"./id\";\r\nexport * from \"./item\";\r\nexport * from \"./url\";\r\n"],"names":[],"mappings":";;;;;uBAAc;uBACA;uBACA"}
