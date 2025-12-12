@@ -11,6 +11,16 @@ import { VerifyOtpPage } from "../pages/auth/verify-otp/page";
 import { BuilderLayout } from "../pages/builder/layout";
 import { BuilderPage } from "../pages/builder/page";
 import { builderLoader } from "../pages/builder/page";
+import { AdminAiiventurePage } from "../pages/admin/aiiventure/page";
+import { AdminLayout } from "../pages/admin/layout";
+import { AdminUsersPage } from "../pages/admin/users/page";
+import { AdminResumesPage } from "../pages/admin/resumes/page";
+import { AdminProviderPage } from "../pages/admin/provider/page";
+import { AdminLoginPage } from "../pages/admin/auth/login/page";
+import { AdminRegisterPage } from "../pages/admin/auth/register/page";
+import { AdminAuthLayout } from "../pages/admin/auth/layout";
+import { TestPage } from "../pages/test/page";
+import { TestLayout } from "../pages/test/layout";
 import { DashboardLayout } from "../pages/dashboard/layout";
 import { ResumesPage } from "../pages/dashboard/resumes/page";
 import { SettingsPage } from "../pages/dashboard/settings/page";
@@ -21,13 +31,20 @@ import { HomePage } from "../pages/home/page";
 import { publicLoader, PublicResumePage } from "../pages/public/page";
 import { Providers } from "../providers";
 import { AuthGuard } from "./guards/auth";
+import { AdminAuthGuard } from "./guards/admin-auth";
 import { GuestGuard } from "./guards/guest";
+import { PublicRouteGuard } from "./guards/public-route";
 import { authLoader } from "./loaders/auth";
 
 export const routes = createRoutesFromElements(
   <Route element={<Providers />}>
     <Route element={<HomeLayout />}>
       <Route path="/" element={<HomePage />} />
+    </Route>
+
+    {/* Test Route - Simple standalone page */}
+    <Route path="test" element={<TestLayout />}>
+      <Route index element={<TestPage />} />
     </Route>
 
     {/* Email Verification - Root level (accessible without auth) */}
@@ -64,6 +81,26 @@ export const routes = createRoutesFromElements(
       <Route index element={<Navigate to="/auth/login" replace />} />
     </Route>
 
+    {/* Admin Auth Routes */}
+    <Route path="admin/auth">
+      <Route element={<AdminAuthLayout />}>
+        <Route path="login" element={<AdminLoginPage />} />
+        <Route path="register" element={<AdminRegisterPage />} />
+        <Route index element={<Navigate to="/admin/auth/login" replace />} />
+      </Route>
+    </Route>
+
+    {/* Admin Routes - Protected */}
+    <Route path="admin" element={<AdminAuthGuard />}>
+      <Route element={<AdminLayout />}>
+        <Route path="aiiventure" element={<AdminAiiventurePage />} />
+        <Route path="users" element={<AdminUsersPage />} />
+        <Route path="resumes" element={<AdminResumesPage />} />
+        <Route path="provider/:provider" element={<AdminProviderPage />} />
+        <Route index element={<Navigate to="/admin/aiiventure" replace />} />
+      </Route>
+    </Route>
+
     <Route path="dashboard">
       <Route element={<AuthGuard />}>
         <Route element={<DashboardLayout />}>
@@ -89,7 +126,9 @@ export const routes = createRoutesFromElements(
 
     {/* Public Routes */}
     <Route path=":username">
-      <Route path=":slug" loader={publicLoader} element={<PublicResumePage />} />
+      <Route element={<PublicRouteGuard />}>
+        <Route path=":slug" loader={publicLoader} element={<PublicResumePage />} />
+      </Route>
     </Route>
   </Route>,
 );

@@ -22,6 +22,7 @@ export const userSchema = z.object({
   locale: z.string().default("en-US"),
   emailVerified: z.boolean().default(false),
   twoFactorEnabled: z.boolean().default(false),
+  isAdmin: z.boolean().default(false),
   provider: z.enum(["email", "github", "google"]).default("email"),
   createdAt: z.date().or(z.dateString()),
   updatedAt: z.date().or(z.dateString()),

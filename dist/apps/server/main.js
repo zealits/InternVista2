@@ -81,20 +81,21 @@ const serve_static_1 = __webpack_require__(13);
 const nest_raven_1 = __webpack_require__(14);
 const nestjs_zod_1 = __webpack_require__(11);
 const path_1 = __webpack_require__(15);
-const auth_module_1 = __webpack_require__(16);
-const cache_module_1 = __webpack_require__(135);
-const config_module_1 = __webpack_require__(136);
-const contributors_module_1 = __webpack_require__(138);
-const database_module_1 = __webpack_require__(142);
-const health_module_1 = __webpack_require__(143);
-const mail_module_1 = __webpack_require__(19);
-const printer_module_1 = __webpack_require__(146);
-const resume_module_1 = __webpack_require__(157);
-const storage_module_1 = __webpack_require__(25);
-const translation_module_1 = __webpack_require__(166);
-const user_module_1 = __webpack_require__(24);
-const utils_module_1 = __webpack_require__(169);
-const email_controller_1 = __webpack_require__(170);
+const admin_module_1 = __webpack_require__(16);
+const auth_module_1 = __webpack_require__(17);
+const cache_module_1 = __webpack_require__(140);
+const config_module_1 = __webpack_require__(141);
+const contributors_module_1 = __webpack_require__(143);
+const database_module_1 = __webpack_require__(147);
+const health_module_1 = __webpack_require__(148);
+const mail_module_1 = __webpack_require__(20);
+const printer_module_1 = __webpack_require__(151);
+const resume_module_1 = __webpack_require__(162);
+const storage_module_1 = __webpack_require__(26);
+const translation_module_1 = __webpack_require__(171);
+const user_module_1 = __webpack_require__(25);
+const utils_module_1 = __webpack_require__(174);
+const email_controller_1 = __webpack_require__(175);
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -117,6 +118,7 @@ exports.AppModule = AppModule = tslib_1.__decorate([
             printer_module_1.PrinterModule,
             translation_module_1.TranslationModule,
             contributors_module_1.ContributorsModule,
+            admin_module_1.AdminModule,
             // Static Assets
             serve_static_1.ServeStaticModule.forRoot({
                 serveRoot: "/artboard",
@@ -199,26 +201,52 @@ module.exports = require("path");
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.AdminModule = void 0;
+const tslib_1 = __webpack_require__(1);
+const common_1 = __webpack_require__(2);
+const auth_module_1 = __webpack_require__(17);
+const admin_auth_controller_1 = __webpack_require__(136);
+const admin_controller_1 = __webpack_require__(138);
+const admin_service_1 = __webpack_require__(137);
+let AdminModule = class AdminModule {
+};
+exports.AdminModule = AdminModule;
+exports.AdminModule = AdminModule = tslib_1.__decorate([
+    (0, common_1.Module)({
+        imports: [(0, common_1.forwardRef)(() => auth_module_1.AuthModule.register())],
+        controllers: [admin_controller_1.AdminController, admin_auth_controller_1.AdminAuthController],
+        providers: [admin_service_1.AdminService],
+        exports: [admin_service_1.AdminService],
+    })
+], AdminModule);
+
+
+/***/ }),
+/* 17 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+
 var AuthModule_1;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AuthModule = void 0;
 const tslib_1 = __webpack_require__(1);
 const common_1 = __webpack_require__(2);
 const config_1 = __webpack_require__(3);
-const jwt_1 = __webpack_require__(17);
-const passport_1 = __webpack_require__(18);
-const mail_module_1 = __webpack_require__(19);
-const user_module_1 = __webpack_require__(24);
-const user_service_1 = __webpack_require__(113);
-const auth_controller_1 = __webpack_require__(115);
-const auth_service_1 = __webpack_require__(109);
-const dummy_strategy_1 = __webpack_require__(123);
-const github_strategy_1 = __webpack_require__(125);
-const google_strategy_1 = __webpack_require__(127);
-const jwt_strategy_1 = __webpack_require__(129);
-const local_strategy_1 = __webpack_require__(131);
-const refresh_strategy_1 = __webpack_require__(133);
-const two_factor_strategy_1 = __webpack_require__(134);
+const jwt_1 = __webpack_require__(18);
+const passport_1 = __webpack_require__(19);
+const mail_module_1 = __webpack_require__(20);
+const user_module_1 = __webpack_require__(25);
+const user_service_1 = __webpack_require__(114);
+const auth_controller_1 = __webpack_require__(116);
+const auth_service_1 = __webpack_require__(110);
+const dummy_strategy_1 = __webpack_require__(124);
+const github_strategy_1 = __webpack_require__(126);
+const google_strategy_1 = __webpack_require__(128);
+const jwt_strategy_1 = __webpack_require__(130);
+const local_strategy_1 = __webpack_require__(132);
+const refresh_strategy_1 = __webpack_require__(134);
+const two_factor_strategy_1 = __webpack_require__(135);
 let AuthModule = AuthModule_1 = class AuthModule {
     static register() {
         return {
@@ -274,19 +302,19 @@ exports.AuthModule = AuthModule = AuthModule_1 = tslib_1.__decorate([
 
 
 /***/ }),
-/* 17 */
+/* 18 */
 /***/ ((module) => {
 
 module.exports = require("@nestjs/jwt");
 
 /***/ }),
-/* 18 */
+/* 19 */
 /***/ ((module) => {
 
 module.exports = require("@nestjs/passport");
 
 /***/ }),
-/* 19 */
+/* 20 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -295,10 +323,10 @@ exports.MailModule = void 0;
 const tslib_1 = __webpack_require__(1);
 const common_1 = __webpack_require__(2);
 const config_1 = __webpack_require__(3);
-const mailer_1 = __webpack_require__(20);
-const nodemailer = tslib_1.__importStar(__webpack_require__(21));
-const mail_service_1 = __webpack_require__(22);
-const email_templates_service_1 = __webpack_require__(23);
+const mailer_1 = __webpack_require__(21);
+const nodemailer = tslib_1.__importStar(__webpack_require__(22));
+const mail_service_1 = __webpack_require__(23);
+const email_templates_service_1 = __webpack_require__(24);
 // Create a mock transporter that logs instead of sending
 const emptyTransporter = nodemailer.createTransport({
     jsonTransport: true, // This makes it log instead of actually sending
@@ -546,19 +574,19 @@ exports.MailModule = MailModule = tslib_1.__decorate([
 
 
 /***/ }),
-/* 20 */
+/* 21 */
 /***/ ((module) => {
 
 module.exports = require("@nestjs-modules/mailer");
 
 /***/ }),
-/* 21 */
+/* 22 */
 /***/ ((module) => {
 
 module.exports = require("nodemailer");
 
 /***/ }),
-/* 22 */
+/* 23 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -568,8 +596,8 @@ exports.MailService = void 0;
 const tslib_1 = __webpack_require__(1);
 const common_1 = __webpack_require__(2);
 const config_1 = __webpack_require__(3);
-const mailer_1 = __webpack_require__(20);
-const email_templates_service_1 = __webpack_require__(23);
+const mailer_1 = __webpack_require__(21);
+const email_templates_service_1 = __webpack_require__(24);
 /**
  * Mail Service
  * Handles sending emails via SMTP with proper error handling
@@ -752,7 +780,7 @@ exports.MailService = MailService = tslib_1.__decorate([
 
 
 /***/ }),
-/* 23 */
+/* 24 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -968,7 +996,7 @@ exports.EmailTemplatesService = EmailTemplatesService = tslib_1.__decorate([
 
 
 /***/ }),
-/* 24 */
+/* 25 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -976,10 +1004,10 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.UserModule = void 0;
 const tslib_1 = __webpack_require__(1);
 const common_1 = __webpack_require__(2);
-const auth_module_1 = __webpack_require__(16);
-const storage_module_1 = __webpack_require__(25);
-const user_controller_1 = __webpack_require__(35);
-const user_service_1 = __webpack_require__(113);
+const auth_module_1 = __webpack_require__(17);
+const storage_module_1 = __webpack_require__(26);
+const user_controller_1 = __webpack_require__(36);
+const user_service_1 = __webpack_require__(114);
 let UserModule = class UserModule {
 };
 exports.UserModule = UserModule;
@@ -994,7 +1022,7 @@ exports.UserModule = UserModule = tslib_1.__decorate([
 
 
 /***/ }),
-/* 25 */
+/* 26 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -1003,9 +1031,9 @@ exports.StorageModule = void 0;
 const tslib_1 = __webpack_require__(1);
 const common_1 = __webpack_require__(2);
 const config_1 = __webpack_require__(3);
-const nestjs_minio_client_1 = __webpack_require__(26);
-const storage_controller_1 = __webpack_require__(27);
-const storage_service_1 = __webpack_require__(31);
+const nestjs_minio_client_1 = __webpack_require__(27);
+const storage_controller_1 = __webpack_require__(28);
+const storage_service_1 = __webpack_require__(32);
 let StorageModule = class StorageModule {
 };
 exports.StorageModule = StorageModule;
@@ -1032,13 +1060,13 @@ exports.StorageModule = StorageModule = tslib_1.__decorate([
 
 
 /***/ }),
-/* 26 */
+/* 27 */
 /***/ ((module) => {
 
 module.exports = require("nestjs-minio-client");
 
 /***/ }),
-/* 27 */
+/* 28 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -1047,11 +1075,11 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.StorageController = void 0;
 const tslib_1 = __webpack_require__(1);
 const common_1 = __webpack_require__(2);
-const platform_express_1 = __webpack_require__(28);
+const platform_express_1 = __webpack_require__(29);
 const swagger_1 = __webpack_require__(5);
-const two_factor_guard_1 = __webpack_require__(29);
-const user_decorator_1 = __webpack_require__(30);
-const storage_service_1 = __webpack_require__(31);
+const two_factor_guard_1 = __webpack_require__(30);
+const user_decorator_1 = __webpack_require__(31);
+const storage_service_1 = __webpack_require__(32);
 let StorageController = class StorageController {
     constructor(storageService) {
         this.storageService = storageService;
@@ -1082,13 +1110,13 @@ exports.StorageController = StorageController = tslib_1.__decorate([
 
 
 /***/ }),
-/* 28 */
+/* 29 */
 /***/ ((module) => {
 
 module.exports = require("@nestjs/platform-express");
 
 /***/ }),
-/* 29 */
+/* 30 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -1096,7 +1124,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.TwoFactorGuard = void 0;
 const tslib_1 = __webpack_require__(1);
 const common_1 = __webpack_require__(2);
-const passport_1 = __webpack_require__(18);
+const passport_1 = __webpack_require__(19);
 let TwoFactorGuard = class TwoFactorGuard extends (0, passport_1.AuthGuard)("two-factor") {
 };
 exports.TwoFactorGuard = TwoFactorGuard;
@@ -1106,7 +1134,7 @@ exports.TwoFactorGuard = TwoFactorGuard = tslib_1.__decorate([
 
 
 /***/ }),
-/* 30 */
+/* 31 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -1121,7 +1149,7 @@ exports.User = (0, common_1.createParamDecorator)((data, ctx) => {
 
 
 /***/ }),
-/* 31 */
+/* 32 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -1132,10 +1160,10 @@ exports.StorageService = void 0;
 const tslib_1 = __webpack_require__(1);
 const common_1 = __webpack_require__(2);
 const config_1 = __webpack_require__(3);
-const cuid2_1 = __webpack_require__(32);
-const nestjs_redis_1 = __webpack_require__(33);
-const nestjs_minio_client_1 = __webpack_require__(26);
-const sharp_1 = tslib_1.__importDefault(__webpack_require__(34));
+const cuid2_1 = __webpack_require__(33);
+const nestjs_redis_1 = __webpack_require__(34);
+const nestjs_minio_client_1 = __webpack_require__(27);
+const sharp_1 = tslib_1.__importDefault(__webpack_require__(35));
 const PUBLIC_ACCESS_POLICY = {
     Version: "2012-10-17",
     Statement: [
@@ -1282,25 +1310,25 @@ exports.StorageService = StorageService = StorageService_1 = tslib_1.__decorate(
 
 
 /***/ }),
-/* 32 */
+/* 33 */
 /***/ ((module) => {
 
 module.exports = require("@paralleldrive/cuid2");
 
 /***/ }),
-/* 33 */
+/* 34 */
 /***/ ((module) => {
 
 module.exports = require("@songkeys/nestjs-redis");
 
 /***/ }),
-/* 34 */
+/* 35 */
 /***/ ((module) => {
 
 module.exports = require("sharp");
 
 /***/ }),
-/* 35 */
+/* 36 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -1310,13 +1338,13 @@ exports.UserController = void 0;
 const tslib_1 = __webpack_require__(1);
 const common_1 = __webpack_require__(2);
 const swagger_1 = __webpack_require__(5);
-const library_1 = __webpack_require__(36);
-const dto_1 = __webpack_require__(37);
-const utils_1 = __webpack_require__(82);
-const auth_service_1 = __webpack_require__(109);
-const two_factor_guard_1 = __webpack_require__(29);
-const user_decorator_1 = __webpack_require__(30);
-const user_service_1 = __webpack_require__(113);
+const library_1 = __webpack_require__(37);
+const dto_1 = __webpack_require__(38);
+const utils_1 = __webpack_require__(83);
+const auth_service_1 = __webpack_require__(110);
+const two_factor_guard_1 = __webpack_require__(30);
+const user_decorator_1 = __webpack_require__(31);
+const user_service_1 = __webpack_require__(114);
 let UserController = class UserController {
     constructor(authService, userService) {
         this.authService = authService;
@@ -1393,25 +1421,10 @@ exports.UserController = UserController = tslib_1.__decorate([
 
 
 /***/ }),
-/* 36 */
+/* 37 */
 /***/ ((module) => {
 
 module.exports = require("@prisma/client/runtime/library");
-
-/***/ }),
-/* 37 */
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-const tslib_1 = __webpack_require__(1);
-tslib_1.__exportStar(__webpack_require__(38), exports);
-tslib_1.__exportStar(__webpack_require__(79), exports);
-tslib_1.__exportStar(__webpack_require__(80), exports);
-tslib_1.__exportStar(__webpack_require__(70), exports);
-tslib_1.__exportStar(__webpack_require__(108), exports);
-tslib_1.__exportStar(__webpack_require__(43), exports);
-
 
 /***/ }),
 /* 38 */
@@ -1421,14 +1434,11 @@ tslib_1.__exportStar(__webpack_require__(43), exports);
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const tslib_1 = __webpack_require__(1);
 tslib_1.__exportStar(__webpack_require__(39), exports);
-tslib_1.__exportStar(__webpack_require__(42), exports);
-tslib_1.__exportStar(__webpack_require__(72), exports);
-tslib_1.__exportStar(__webpack_require__(73), exports);
-tslib_1.__exportStar(__webpack_require__(74), exports);
-tslib_1.__exportStar(__webpack_require__(75), exports);
-tslib_1.__exportStar(__webpack_require__(76), exports);
-tslib_1.__exportStar(__webpack_require__(77), exports);
-tslib_1.__exportStar(__webpack_require__(78), exports);
+tslib_1.__exportStar(__webpack_require__(80), exports);
+tslib_1.__exportStar(__webpack_require__(81), exports);
+tslib_1.__exportStar(__webpack_require__(71), exports);
+tslib_1.__exportStar(__webpack_require__(109), exports);
+tslib_1.__exportStar(__webpack_require__(44), exports);
 
 
 /***/ }),
@@ -1437,9 +1447,27 @@ tslib_1.__exportStar(__webpack_require__(78), exports);
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+const tslib_1 = __webpack_require__(1);
+tslib_1.__exportStar(__webpack_require__(40), exports);
+tslib_1.__exportStar(__webpack_require__(43), exports);
+tslib_1.__exportStar(__webpack_require__(73), exports);
+tslib_1.__exportStar(__webpack_require__(74), exports);
+tslib_1.__exportStar(__webpack_require__(75), exports);
+tslib_1.__exportStar(__webpack_require__(76), exports);
+tslib_1.__exportStar(__webpack_require__(77), exports);
+tslib_1.__exportStar(__webpack_require__(78), exports);
+tslib_1.__exportStar(__webpack_require__(79), exports);
+
+
+/***/ }),
+/* 40 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ForgotPasswordDto = exports.forgotPasswordSchema = void 0;
-const dto_1 = __webpack_require__(40);
-const z_1 = __webpack_require__(41);
+const dto_1 = __webpack_require__(41);
+const z_1 = __webpack_require__(42);
 exports.forgotPasswordSchema = z_1.z.object({ email: z_1.z.string().email() });
 class ForgotPasswordDto extends (0, dto_1.createZodDto)(exports.forgotPasswordSchema) {
 }
@@ -1447,27 +1475,27 @@ exports.ForgotPasswordDto = ForgotPasswordDto;
 
 
 /***/ }),
-/* 40 */
+/* 41 */
 /***/ ((module) => {
 
 module.exports = require("nestjs-zod/dto");
 
 /***/ }),
-/* 41 */
+/* 42 */
 /***/ ((module) => {
 
 module.exports = require("nestjs-zod/z");
 
 /***/ }),
-/* 42 */
+/* 43 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.LoginDto = exports.loginSchema = void 0;
-const dto_1 = __webpack_require__(40);
-const z_1 = __webpack_require__(41);
-const user_1 = __webpack_require__(43);
+const dto_1 = __webpack_require__(41);
+const z_1 = __webpack_require__(42);
+const user_1 = __webpack_require__(44);
 exports.loginSchema = z_1.z
     .object({
     identifier: z_1.z.string(),
@@ -1487,25 +1515,25 @@ exports.LoginDto = LoginDto;
 
 
 /***/ }),
-/* 43 */
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-const tslib_1 = __webpack_require__(1);
-tslib_1.__exportStar(__webpack_require__(44), exports);
-tslib_1.__exportStar(__webpack_require__(45), exports);
-
-
-/***/ }),
 /* 44 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+const tslib_1 = __webpack_require__(1);
+tslib_1.__exportStar(__webpack_require__(45), exports);
+tslib_1.__exportStar(__webpack_require__(46), exports);
+
+
+/***/ }),
+/* 45 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.UpdateUserDto = exports.updateUserSchema = void 0;
-const dto_1 = __webpack_require__(40);
-const user_1 = __webpack_require__(45);
+const dto_1 = __webpack_require__(41);
+const user_1 = __webpack_require__(46);
 exports.updateUserSchema = user_1.userSchema.partial().pick({
     name: true,
     locale: true,
@@ -1519,16 +1547,16 @@ exports.UpdateUserDto = UpdateUserDto;
 
 
 /***/ }),
-/* 45 */
+/* 46 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.UserWithSecrets = exports.userWithSecretsSchema = exports.UserDto = exports.userSchema = exports.usernameSchema = void 0;
-const schema_1 = __webpack_require__(46);
-const dto_1 = __webpack_require__(40);
-const z_1 = __webpack_require__(41);
-const secrets_1 = __webpack_require__(70);
+const schema_1 = __webpack_require__(47);
+const dto_1 = __webpack_require__(41);
+const z_1 = __webpack_require__(42);
+const secrets_1 = __webpack_require__(71);
 exports.usernameSchema = z_1.z
     .string()
     .min(3)
@@ -1545,6 +1573,7 @@ exports.userSchema = z_1.z.object({
     locale: z_1.z.string().default("en-US"),
     emailVerified: z_1.z.boolean().default(false),
     twoFactorEnabled: z_1.z.boolean().default(false),
+    isAdmin: z_1.z.boolean().default(false),
     provider: z_1.z.enum(["email", "github", "google"]).default("email"),
     createdAt: z_1.z.date().or(z_1.z.dateString()),
     updatedAt: z_1.z.date().or(z_1.z.dateString()),
@@ -1559,17 +1588,17 @@ exports.UserWithSecrets = UserWithSecrets;
 
 
 /***/ }),
-/* 46 */
+/* 47 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.defaultResumeData = exports.resumeDataSchema = void 0;
 const tslib_1 = __webpack_require__(1);
-const zod_1 = __webpack_require__(47);
-const basics_1 = __webpack_require__(48);
-const metadata_1 = __webpack_require__(54);
-const sections_1 = __webpack_require__(55);
+const zod_1 = __webpack_require__(48);
+const basics_1 = __webpack_require__(49);
+const metadata_1 = __webpack_require__(55);
+const sections_1 = __webpack_require__(56);
 // Schema
 exports.resumeDataSchema = zod_1.z.object({
     basics: basics_1.basicsSchema,
@@ -1582,30 +1611,30 @@ exports.defaultResumeData = {
     sections: sections_1.defaultSections,
     metadata: metadata_1.defaultMetadata,
 };
-tslib_1.__exportStar(__webpack_require__(48), exports);
-tslib_1.__exportStar(__webpack_require__(54), exports);
-tslib_1.__exportStar(__webpack_require__(69), exports);
-tslib_1.__exportStar(__webpack_require__(55), exports);
 tslib_1.__exportStar(__webpack_require__(49), exports);
+tslib_1.__exportStar(__webpack_require__(55), exports);
+tslib_1.__exportStar(__webpack_require__(70), exports);
+tslib_1.__exportStar(__webpack_require__(56), exports);
+tslib_1.__exportStar(__webpack_require__(50), exports);
 
 
 /***/ }),
-/* 47 */
+/* 48 */
 /***/ ((module) => {
 
 module.exports = require("zod");
 
 /***/ }),
-/* 48 */
+/* 49 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.defaultBasics = exports.basicsSchema = void 0;
 const tslib_1 = __webpack_require__(1);
-const zod_1 = __webpack_require__(47);
-const shared_1 = __webpack_require__(49);
-const custom_1 = __webpack_require__(53);
+const zod_1 = __webpack_require__(48);
+const shared_1 = __webpack_require__(50);
+const custom_1 = __webpack_require__(54);
 // Schema
 exports.basicsSchema = zod_1.z.object({
     name: zod_1.z.string(),
@@ -1648,19 +1677,7 @@ exports.defaultBasics = {
         },
     },
 };
-tslib_1.__exportStar(__webpack_require__(53), exports);
-
-
-/***/ }),
-/* 49 */
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-const tslib_1 = __webpack_require__(1);
-tslib_1.__exportStar(__webpack_require__(50), exports);
-tslib_1.__exportStar(__webpack_require__(51), exports);
-tslib_1.__exportStar(__webpack_require__(52), exports);
+tslib_1.__exportStar(__webpack_require__(54), exports);
 
 
 /***/ }),
@@ -1669,14 +1686,10 @@ tslib_1.__exportStar(__webpack_require__(52), exports);
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.idSchema = void 0;
-const cuid2_1 = __webpack_require__(32);
-const zod_1 = __webpack_require__(47);
-exports.idSchema = zod_1.z
-    .string()
-    .cuid2()
-    .default((0, cuid2_1.createId)())
-    .describe("Unique identifier for the item in Cuid2 format");
+const tslib_1 = __webpack_require__(1);
+tslib_1.__exportStar(__webpack_require__(51), exports);
+tslib_1.__exportStar(__webpack_require__(52), exports);
+tslib_1.__exportStar(__webpack_require__(53), exports);
 
 
 /***/ }),
@@ -1685,9 +1698,25 @@ exports.idSchema = zod_1.z
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.idSchema = void 0;
+const cuid2_1 = __webpack_require__(33);
+const zod_1 = __webpack_require__(48);
+exports.idSchema = zod_1.z
+    .string()
+    .cuid2()
+    .default((0, cuid2_1.createId)())
+    .describe("Unique identifier for the item in Cuid2 format");
+
+
+/***/ }),
+/* 52 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.defaultItem = exports.itemSchema = void 0;
-const zod_1 = __webpack_require__(47);
-const id_1 = __webpack_require__(50);
+const zod_1 = __webpack_require__(48);
+const id_1 = __webpack_require__(51);
 // Schema
 exports.itemSchema = zod_1.z.object({
     id: id_1.idSchema,
@@ -1701,13 +1730,13 @@ exports.defaultItem = {
 
 
 /***/ }),
-/* 52 */
+/* 53 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.defaultUrl = exports.urlSchema = void 0;
-const zod_1 = __webpack_require__(47);
+const zod_1 = __webpack_require__(48);
 // Schema
 exports.urlSchema = zod_1.z.object({
     label: zod_1.z.string(),
@@ -1721,13 +1750,13 @@ exports.defaultUrl = {
 
 
 /***/ }),
-/* 53 */
+/* 54 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.customFieldsDefault = exports.customFieldSchema = void 0;
-const zod_1 = __webpack_require__(47);
+const zod_1 = __webpack_require__(48);
 exports.customFieldSchema = zod_1.z.object({
     id: zod_1.z.string().cuid2(),
     icon: zod_1.z.string(),
@@ -1738,13 +1767,13 @@ exports.customFieldsDefault = [];
 
 
 /***/ }),
-/* 54 */
+/* 55 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.defaultMetadata = exports.metadataSchema = exports.defaultLayout = void 0;
-const zod_1 = __webpack_require__(47);
+const zod_1 = __webpack_require__(48);
 exports.defaultLayout = [
     [
         ["profiles", "summary", "experience", "education", "projects", "volunteer", "references"],
@@ -1822,28 +1851,28 @@ exports.defaultMetadata = {
 
 
 /***/ }),
-/* 55 */
+/* 56 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.defaultSections = exports.defaultSection = exports.sectionsSchema = exports.customSchema = exports.sectionSchema = void 0;
 const tslib_1 = __webpack_require__(1);
-const zod_1 = __webpack_require__(47);
-const shared_1 = __webpack_require__(49);
-const award_1 = __webpack_require__(56);
-const certification_1 = __webpack_require__(57);
-const custom_section_1 = __webpack_require__(58);
-const education_1 = __webpack_require__(59);
-const experience_1 = __webpack_require__(60);
-const interest_1 = __webpack_require__(61);
-const language_1 = __webpack_require__(62);
-const profile_1 = __webpack_require__(63);
-const project_1 = __webpack_require__(64);
-const publication_1 = __webpack_require__(65);
-const reference_1 = __webpack_require__(66);
-const skill_1 = __webpack_require__(67);
-const volunteer_1 = __webpack_require__(68);
+const zod_1 = __webpack_require__(48);
+const shared_1 = __webpack_require__(50);
+const award_1 = __webpack_require__(57);
+const certification_1 = __webpack_require__(58);
+const custom_section_1 = __webpack_require__(59);
+const education_1 = __webpack_require__(60);
+const experience_1 = __webpack_require__(61);
+const interest_1 = __webpack_require__(62);
+const language_1 = __webpack_require__(63);
+const profile_1 = __webpack_require__(64);
+const project_1 = __webpack_require__(65);
+const publication_1 = __webpack_require__(66);
+const reference_1 = __webpack_require__(67);
+const skill_1 = __webpack_require__(68);
+const volunteer_1 = __webpack_require__(69);
 // Schema
 exports.sectionSchema = zod_1.z.object({
     name: zod_1.z.string(),
@@ -1932,7 +1961,6 @@ exports.defaultSections = {
     skills: { ...exports.defaultSection, id: "skills", name: "Skills", items: [] },
     custom: {},
 };
-tslib_1.__exportStar(__webpack_require__(56), exports);
 tslib_1.__exportStar(__webpack_require__(57), exports);
 tslib_1.__exportStar(__webpack_require__(58), exports);
 tslib_1.__exportStar(__webpack_require__(59), exports);
@@ -1945,17 +1973,18 @@ tslib_1.__exportStar(__webpack_require__(65), exports);
 tslib_1.__exportStar(__webpack_require__(66), exports);
 tslib_1.__exportStar(__webpack_require__(67), exports);
 tslib_1.__exportStar(__webpack_require__(68), exports);
+tslib_1.__exportStar(__webpack_require__(69), exports);
 
 
 /***/ }),
-/* 56 */
+/* 57 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.defaultAward = exports.awardSchema = void 0;
-const zod_1 = __webpack_require__(47);
-const shared_1 = __webpack_require__(49);
+const zod_1 = __webpack_require__(48);
+const shared_1 = __webpack_require__(50);
 // Schema
 exports.awardSchema = shared_1.itemSchema.extend({
     title: zod_1.z.string().min(1),
@@ -1976,14 +2005,14 @@ exports.defaultAward = {
 
 
 /***/ }),
-/* 57 */
+/* 58 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.defaultCertification = exports.certificationSchema = void 0;
-const zod_1 = __webpack_require__(47);
-const shared_1 = __webpack_require__(49);
+const zod_1 = __webpack_require__(48);
+const shared_1 = __webpack_require__(50);
 // Schema
 exports.certificationSchema = shared_1.itemSchema.extend({
     name: zod_1.z.string().min(1),
@@ -2004,14 +2033,14 @@ exports.defaultCertification = {
 
 
 /***/ }),
-/* 58 */
+/* 59 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.defaultCustomSection = exports.customSectionSchema = void 0;
-const zod_1 = __webpack_require__(47);
-const shared_1 = __webpack_require__(49);
+const zod_1 = __webpack_require__(48);
+const shared_1 = __webpack_require__(50);
 // Schema
 exports.customSectionSchema = shared_1.itemSchema.extend({
     name: zod_1.z.string(),
@@ -2036,14 +2065,14 @@ exports.defaultCustomSection = {
 
 
 /***/ }),
-/* 59 */
+/* 60 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.defaultEducation = exports.educationSchema = void 0;
-const zod_1 = __webpack_require__(47);
-const shared_1 = __webpack_require__(49);
+const zod_1 = __webpack_require__(48);
+const shared_1 = __webpack_require__(50);
 // Schema
 exports.educationSchema = shared_1.itemSchema.extend({
     institution: zod_1.z.string().min(1),
@@ -2069,14 +2098,14 @@ exports.defaultEducation = {
 
 
 /***/ }),
-/* 60 */
+/* 61 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.defaultExperience = exports.experienceSchema = void 0;
-const zod_1 = __webpack_require__(47);
-const shared_1 = __webpack_require__(49);
+const zod_1 = __webpack_require__(48);
+const shared_1 = __webpack_require__(50);
 // Schema
 exports.experienceSchema = shared_1.itemSchema.extend({
     company: zod_1.z.string().min(1),
@@ -2099,14 +2128,14 @@ exports.defaultExperience = {
 
 
 /***/ }),
-/* 61 */
+/* 62 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.defaultInterest = exports.interestSchema = void 0;
-const zod_1 = __webpack_require__(47);
-const shared_1 = __webpack_require__(49);
+const zod_1 = __webpack_require__(48);
+const shared_1 = __webpack_require__(50);
 // Schema
 exports.interestSchema = shared_1.itemSchema.extend({
     name: zod_1.z.string().min(1),
@@ -2121,14 +2150,14 @@ exports.defaultInterest = {
 
 
 /***/ }),
-/* 62 */
+/* 63 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.defaultLanguage = exports.languageSchema = void 0;
-const zod_1 = __webpack_require__(47);
-const shared_1 = __webpack_require__(49);
+const zod_1 = __webpack_require__(48);
+const shared_1 = __webpack_require__(50);
 // Schema
 exports.languageSchema = shared_1.itemSchema.extend({
     name: zod_1.z.string().min(1),
@@ -2145,14 +2174,14 @@ exports.defaultLanguage = {
 
 
 /***/ }),
-/* 63 */
+/* 64 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.defaultProfile = exports.profileSchema = void 0;
-const zod_1 = __webpack_require__(47);
-const shared_1 = __webpack_require__(49);
+const zod_1 = __webpack_require__(48);
+const shared_1 = __webpack_require__(50);
 // Schema
 exports.profileSchema = shared_1.itemSchema.extend({
     network: zod_1.z.string().min(1),
@@ -2173,14 +2202,14 @@ exports.defaultProfile = {
 
 
 /***/ }),
-/* 64 */
+/* 65 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.defaultProject = exports.projectSchema = void 0;
-const zod_1 = __webpack_require__(47);
-const shared_1 = __webpack_require__(49);
+const zod_1 = __webpack_require__(48);
+const shared_1 = __webpack_require__(50);
 // Schema
 exports.projectSchema = shared_1.itemSchema.extend({
     name: zod_1.z.string().min(1),
@@ -2203,14 +2232,14 @@ exports.defaultProject = {
 
 
 /***/ }),
-/* 65 */
+/* 66 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.defaultPublication = exports.publicationSchema = void 0;
-const zod_1 = __webpack_require__(47);
-const shared_1 = __webpack_require__(49);
+const zod_1 = __webpack_require__(48);
+const shared_1 = __webpack_require__(50);
 // Schema
 exports.publicationSchema = shared_1.itemSchema.extend({
     name: zod_1.z.string().min(1),
@@ -2231,14 +2260,14 @@ exports.defaultPublication = {
 
 
 /***/ }),
-/* 66 */
+/* 67 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.defaultReference = exports.referenceSchema = void 0;
-const zod_1 = __webpack_require__(47);
-const shared_1 = __webpack_require__(49);
+const zod_1 = __webpack_require__(48);
+const shared_1 = __webpack_require__(50);
 // Schema
 exports.referenceSchema = shared_1.itemSchema.extend({
     name: zod_1.z.string().min(1),
@@ -2257,14 +2286,14 @@ exports.defaultReference = {
 
 
 /***/ }),
-/* 67 */
+/* 68 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.defaultSkill = exports.skillSchema = void 0;
-const zod_1 = __webpack_require__(47);
-const shared_1 = __webpack_require__(49);
+const zod_1 = __webpack_require__(48);
+const shared_1 = __webpack_require__(50);
 // Schema
 exports.skillSchema = shared_1.itemSchema.extend({
     name: zod_1.z.string(),
@@ -2283,14 +2312,14 @@ exports.defaultSkill = {
 
 
 /***/ }),
-/* 68 */
+/* 69 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.defaultVolunteer = exports.volunteerSchema = void 0;
-const zod_1 = __webpack_require__(47);
-const shared_1 = __webpack_require__(49);
+const zod_1 = __webpack_require__(48);
+const shared_1 = __webpack_require__(50);
 // Schema
 exports.volunteerSchema = shared_1.itemSchema.extend({
     organization: zod_1.z.string().min(1),
@@ -2313,7 +2342,7 @@ exports.defaultVolunteer = {
 
 
 /***/ }),
-/* 69 */
+/* 70 */
 /***/ ((__unused_webpack_module, exports) => {
 
 
@@ -2642,25 +2671,25 @@ exports.sampleResume = {
 
 
 /***/ }),
-/* 70 */
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-const tslib_1 = __webpack_require__(1);
-tslib_1.__exportStar(__webpack_require__(71), exports);
-
-
-/***/ }),
 /* 71 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+const tslib_1 = __webpack_require__(1);
+tslib_1.__exportStar(__webpack_require__(72), exports);
+
+
+/***/ }),
+/* 72 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.SecretsDto = exports.secretsSchema = void 0;
-const schema_1 = __webpack_require__(46);
-const dto_1 = __webpack_require__(40);
-const z_1 = __webpack_require__(41);
+const schema_1 = __webpack_require__(47);
+const dto_1 = __webpack_require__(41);
+const z_1 = __webpack_require__(42);
 exports.secretsSchema = z_1.z.object({
     id: schema_1.idSchema,
     password: z_1.z.string().nullable(),
@@ -2678,33 +2707,18 @@ exports.SecretsDto = SecretsDto;
 
 
 /***/ }),
-/* 72 */
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.MessageDto = exports.messageSchema = void 0;
-const dto_1 = __webpack_require__(40);
-const z_1 = __webpack_require__(41);
-exports.messageSchema = z_1.z.object({ message: z_1.z.string() });
-class MessageDto extends (0, dto_1.createZodDto)(exports.messageSchema) {
-}
-exports.MessageDto = MessageDto;
-
-
-/***/ }),
 /* 73 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.AuthProvidersDto = void 0;
-const dto_1 = __webpack_require__(40);
-const z_1 = __webpack_require__(41);
-const authProvidersSchema = z_1.z.array(z_1.z.enum(["email", "github", "google"]));
-class AuthProvidersDto extends (0, dto_1.createZodDto)(authProvidersSchema) {
+exports.MessageDto = exports.messageSchema = void 0;
+const dto_1 = __webpack_require__(41);
+const z_1 = __webpack_require__(42);
+exports.messageSchema = z_1.z.object({ message: z_1.z.string() });
+class MessageDto extends (0, dto_1.createZodDto)(exports.messageSchema) {
 }
-exports.AuthProvidersDto = AuthProvidersDto;
+exports.MessageDto = MessageDto;
 
 
 /***/ }),
@@ -2713,10 +2727,25 @@ exports.AuthProvidersDto = AuthProvidersDto;
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.AuthProvidersDto = void 0;
+const dto_1 = __webpack_require__(41);
+const z_1 = __webpack_require__(42);
+const authProvidersSchema = z_1.z.array(z_1.z.enum(["email", "github", "google"]));
+class AuthProvidersDto extends (0, dto_1.createZodDto)(authProvidersSchema) {
+}
+exports.AuthProvidersDto = AuthProvidersDto;
+
+
+/***/ }),
+/* 75 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.RegisterDto = exports.registerSchema = void 0;
-const dto_1 = __webpack_require__(40);
-const z_1 = __webpack_require__(41);
-const user_1 = __webpack_require__(43);
+const dto_1 = __webpack_require__(41);
+const z_1 = __webpack_require__(42);
+const user_1 = __webpack_require__(44);
 exports.registerSchema = user_1.userSchema
     .pick({ name: true, email: true, username: true, locale: true })
     .extend({ password: z_1.z.password().min(6) });
@@ -2726,14 +2755,14 @@ exports.RegisterDto = RegisterDto;
 
 
 /***/ }),
-/* 75 */
+/* 76 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ResetPasswordDto = exports.resetPasswordSchema = void 0;
-const dto_1 = __webpack_require__(40);
-const z_1 = __webpack_require__(41);
+const dto_1 = __webpack_require__(41);
+const z_1 = __webpack_require__(42);
 exports.resetPasswordSchema = z_1.z.object({
     token: z_1.z.string(),
     password: z_1.z.password().min(6),
@@ -2744,15 +2773,15 @@ exports.ResetPasswordDto = ResetPasswordDto;
 
 
 /***/ }),
-/* 76 */
+/* 77 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AuthResponseDto = exports.authResponseSchema = void 0;
-const dto_1 = __webpack_require__(40);
-const z_1 = __webpack_require__(41);
-const user_1 = __webpack_require__(43);
+const dto_1 = __webpack_require__(41);
+const z_1 = __webpack_require__(42);
+const user_1 = __webpack_require__(44);
 exports.authResponseSchema = z_1.z.object({
     status: z_1.z.enum(["authenticated", "2fa_required"]),
     user: user_1.userSchema,
@@ -2763,14 +2792,14 @@ exports.AuthResponseDto = AuthResponseDto;
 
 
 /***/ }),
-/* 77 */
+/* 78 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.TwoFactorBackupDto = exports.twoFactorBackupSchema = exports.BackupCodesDto = exports.backupCodesSchema = exports.TwoFactorDto = exports.twoFactorSchema = void 0;
-const dto_1 = __webpack_require__(40);
-const z_1 = __webpack_require__(41);
+const dto_1 = __webpack_require__(41);
+const z_1 = __webpack_require__(42);
 exports.twoFactorSchema = z_1.z.object({
     code: z_1.z
         .string()
@@ -2795,14 +2824,14 @@ exports.TwoFactorBackupDto = TwoFactorBackupDto;
 
 
 /***/ }),
-/* 78 */
+/* 79 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.UpdatePasswordDto = exports.updatePasswordSchema = void 0;
-const dto_1 = __webpack_require__(40);
-const z_1 = __webpack_require__(41);
+const dto_1 = __webpack_require__(41);
+const z_1 = __webpack_require__(42);
 exports.updatePasswordSchema = z_1.z.object({
     password: z_1.z.string().min(6),
 });
@@ -2812,14 +2841,14 @@ exports.UpdatePasswordDto = UpdatePasswordDto;
 
 
 /***/ }),
-/* 79 */
+/* 80 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ContributorDto = exports.contributorSchema = void 0;
-const dto_1 = __webpack_require__(40);
-const z_1 = __webpack_require__(41);
+const dto_1 = __webpack_require__(41);
+const z_1 = __webpack_require__(42);
 exports.contributorSchema = z_1.z.object({
     id: z_1.z.number(),
     name: z_1.z.string(),
@@ -2832,30 +2861,30 @@ exports.ContributorDto = ContributorDto;
 
 
 /***/ }),
-/* 80 */
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-const tslib_1 = __webpack_require__(1);
-tslib_1.__exportStar(__webpack_require__(81), exports);
-tslib_1.__exportStar(__webpack_require__(103), exports);
-tslib_1.__exportStar(__webpack_require__(104), exports);
-tslib_1.__exportStar(__webpack_require__(105), exports);
-tslib_1.__exportStar(__webpack_require__(106), exports);
-tslib_1.__exportStar(__webpack_require__(107), exports);
-
-
-/***/ }),
 /* 81 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+const tslib_1 = __webpack_require__(1);
+tslib_1.__exportStar(__webpack_require__(82), exports);
+tslib_1.__exportStar(__webpack_require__(104), exports);
+tslib_1.__exportStar(__webpack_require__(105), exports);
+tslib_1.__exportStar(__webpack_require__(106), exports);
+tslib_1.__exportStar(__webpack_require__(107), exports);
+tslib_1.__exportStar(__webpack_require__(108), exports);
+
+
+/***/ }),
+/* 82 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.CreateResumeDto = exports.createResumeSchema = void 0;
-const utils_1 = __webpack_require__(82);
-const dto_1 = __webpack_require__(40);
-const z_1 = __webpack_require__(41);
+const utils_1 = __webpack_require__(83);
+const dto_1 = __webpack_require__(41);
+const z_1 = __webpack_require__(42);
 exports.createResumeSchema = z_1.z.object({
     title: z_1.z.string().min(1),
     slug: z_1.z.string().min(1).transform(utils_1.kebabCase),
@@ -2867,17 +2896,16 @@ exports.CreateResumeDto = CreateResumeDto;
 
 
 /***/ }),
-/* 82 */
+/* 83 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const tslib_1 = __webpack_require__(1);
-tslib_1.__exportStar(__webpack_require__(83), exports);
 tslib_1.__exportStar(__webpack_require__(84), exports);
 tslib_1.__exportStar(__webpack_require__(85), exports);
-tslib_1.__exportStar(__webpack_require__(87), exports);
-tslib_1.__exportStar(__webpack_require__(89), exports);
+tslib_1.__exportStar(__webpack_require__(86), exports);
+tslib_1.__exportStar(__webpack_require__(88), exports);
 tslib_1.__exportStar(__webpack_require__(90), exports);
 tslib_1.__exportStar(__webpack_require__(91), exports);
 tslib_1.__exportStar(__webpack_require__(92), exports);
@@ -2885,13 +2913,14 @@ tslib_1.__exportStar(__webpack_require__(93), exports);
 tslib_1.__exportStar(__webpack_require__(94), exports);
 tslib_1.__exportStar(__webpack_require__(95), exports);
 tslib_1.__exportStar(__webpack_require__(96), exports);
-tslib_1.__exportStar(__webpack_require__(98), exports);
-tslib_1.__exportStar(__webpack_require__(101), exports);
+tslib_1.__exportStar(__webpack_require__(97), exports);
+tslib_1.__exportStar(__webpack_require__(99), exports);
 tslib_1.__exportStar(__webpack_require__(102), exports);
+tslib_1.__exportStar(__webpack_require__(103), exports);
 
 
 /***/ }),
-/* 83 */
+/* 84 */
 /***/ ((__unused_webpack_module, exports) => {
 
 
@@ -2941,7 +2970,7 @@ exports.moveItemInLayout = moveItemInLayout;
 
 
 /***/ }),
-/* 84 */
+/* 85 */
 /***/ ((__unused_webpack_module, exports) => {
 
 
@@ -2960,14 +2989,14 @@ exports.hexToRgb = hexToRgb;
 
 
 /***/ }),
-/* 85 */
+/* 86 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.parseArrayLikeCSVEntry = exports.parseCSV = void 0;
 const tslib_1 = __webpack_require__(1);
-const papaparse_1 = tslib_1.__importDefault(__webpack_require__(86));
+const papaparse_1 = tslib_1.__importDefault(__webpack_require__(87));
 const parseCSV = async (string) => {
     return new Promise((resolve, reject) => {
         papaparse_1.default.parse(string, {
@@ -2989,20 +3018,20 @@ exports.parseArrayLikeCSVEntry = parseArrayLikeCSVEntry;
 
 
 /***/ }),
-/* 86 */
+/* 87 */
 /***/ ((module) => {
 
 module.exports = require("papaparse");
 
 /***/ }),
-/* 87 */
+/* 88 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.deepSearchAndParseDates = exports.sortByDate = void 0;
 const tslib_1 = __webpack_require__(1);
-const dayjs_1 = tslib_1.__importDefault(__webpack_require__(88));
+const dayjs_1 = tslib_1.__importDefault(__webpack_require__(89));
 const sortByDate = (a, b, key, desc = true) => {
     if (!a[key] || !b[key])
         return 0;
@@ -3043,13 +3072,13 @@ exports.deepSearchAndParseDates = deepSearchAndParseDates;
 
 
 /***/ }),
-/* 88 */
+/* 89 */
 /***/ ((module) => {
 
 module.exports = require("dayjs");
 
 /***/ }),
-/* 89 */
+/* 90 */
 /***/ ((__unused_webpack_module, exports) => {
 
 
@@ -3079,7 +3108,7 @@ var ErrorMessage;
 
 
 /***/ }),
-/* 90 */
+/* 91 */
 /***/ ((__unused_webpack_module, exports) => {
 
 
@@ -11521,7 +11550,7 @@ exports.getFontUrls = getFontUrls;
 
 
 /***/ }),
-/* 91 */
+/* 92 */
 /***/ ((__unused_webpack_module, exports) => {
 
 
@@ -11808,7 +11837,7 @@ exports.languages = [
 
 
 /***/ }),
-/* 92 */
+/* 93 */
 /***/ ((__unused_webpack_module, exports) => {
 
 
@@ -11823,7 +11852,7 @@ exports.linearTransform = linearTransform;
 
 
 /***/ }),
-/* 93 */
+/* 94 */
 /***/ ((__unused_webpack_module, exports) => {
 
 
@@ -11838,7 +11867,7 @@ exports.exclude = exclude;
 
 
 /***/ }),
-/* 94 */
+/* 95 */
 /***/ ((__unused_webpack_module, exports) => {
 
 
@@ -11857,7 +11886,7 @@ exports.pageSizeMap = {
 
 
 /***/ }),
-/* 95 */
+/* 96 */
 /***/ ((__unused_webpack_module, exports) => {
 
 
@@ -11868,13 +11897,13 @@ exports.delay = delay;
 
 
 /***/ }),
-/* 96 */
+/* 97 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.parseLayoutLocator = exports.processUsername = exports.generateRandomName = exports.kebabCase = exports.extractUrl = exports.isEmptyString = exports.isUrl = exports.getInitials = void 0;
-const unique_names_generator_1 = __webpack_require__(97);
+const unique_names_generator_1 = __webpack_require__(98);
 const getInitials = (name) => {
     const regex = new RegExp(/(\p{L}{1})\p{L}+/, "gu");
     const initials = [...name.matchAll(regex)] || [];
@@ -11935,20 +11964,20 @@ exports.parseLayoutLocator = parseLayoutLocator;
 
 
 /***/ }),
-/* 97 */
+/* 98 */
 /***/ ((module) => {
 
 module.exports = require("unique-names-generator");
 
 /***/ }),
-/* 98 */
+/* 99 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.cn = exports.breakpoints = void 0;
-const clsx_1 = __webpack_require__(99);
-const tailwind_merge_1 = __webpack_require__(100);
+const clsx_1 = __webpack_require__(100);
+const tailwind_merge_1 = __webpack_require__(101);
 exports.breakpoints = {
     xs: 0,
     sm: 640,
@@ -11962,19 +11991,19 @@ exports.cn = cn;
 
 
 /***/ }),
-/* 99 */
+/* 100 */
 /***/ ((module) => {
 
 module.exports = require("clsx");
 
 /***/ }),
-/* 100 */
+/* 101 */
 /***/ ((module) => {
 
 module.exports = require("tailwind-merge");
 
 /***/ }),
-/* 101 */
+/* 102 */
 /***/ ((__unused_webpack_module, exports) => {
 
 
@@ -11997,7 +12026,7 @@ exports.templatesList = [
 
 
 /***/ }),
-/* 102 */
+/* 103 */
 /***/ ((__unused_webpack_module, exports) => {
 
 
@@ -12005,15 +12034,15 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 
 
 /***/ }),
-/* 103 */
+/* 104 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.DeleteResumeDto = exports.deleteResumeSchema = void 0;
-const schema_1 = __webpack_require__(46);
-const dto_1 = __webpack_require__(40);
-const z_1 = __webpack_require__(41);
+const schema_1 = __webpack_require__(47);
+const dto_1 = __webpack_require__(41);
+const z_1 = __webpack_require__(42);
 exports.deleteResumeSchema = z_1.z.object({
     id: schema_1.idSchema,
 });
@@ -12023,16 +12052,16 @@ exports.DeleteResumeDto = DeleteResumeDto;
 
 
 /***/ }),
-/* 104 */
+/* 105 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ImportResumeDto = exports.importResumeSchema = void 0;
-const schema_1 = __webpack_require__(46);
-const utils_1 = __webpack_require__(82);
-const dto_1 = __webpack_require__(40);
-const z_1 = __webpack_require__(41);
+const schema_1 = __webpack_require__(47);
+const utils_1 = __webpack_require__(83);
+const dto_1 = __webpack_require__(41);
+const z_1 = __webpack_require__(42);
 exports.importResumeSchema = z_1.z.object({
     title: z_1.z.string().optional(),
     slug: z_1.z.string().min(1).transform(utils_1.kebabCase).optional(),
@@ -12045,16 +12074,16 @@ exports.ImportResumeDto = ImportResumeDto;
 
 
 /***/ }),
-/* 105 */
+/* 106 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ResumeDto = exports.resumeSchema = void 0;
-const schema_1 = __webpack_require__(46);
-const dto_1 = __webpack_require__(40);
-const z_1 = __webpack_require__(41);
-const user_1 = __webpack_require__(43);
+const schema_1 = __webpack_require__(47);
+const dto_1 = __webpack_require__(41);
+const z_1 = __webpack_require__(42);
+const user_1 = __webpack_require__(44);
 exports.resumeSchema = z_1.z.object({
     id: schema_1.idSchema,
     title: z_1.z.string(),
@@ -12073,33 +12102,18 @@ exports.ResumeDto = ResumeDto;
 
 
 /***/ }),
-/* 106 */
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.UpdateResumeDto = exports.updateResumeSchema = void 0;
-const dto_1 = __webpack_require__(40);
-const resume_1 = __webpack_require__(105);
-exports.updateResumeSchema = resume_1.resumeSchema.partial();
-class UpdateResumeDto extends (0, dto_1.createZodDto)(exports.updateResumeSchema) {
-}
-exports.UpdateResumeDto = UpdateResumeDto;
-
-
-/***/ }),
 /* 107 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.UrlDto = exports.urlSchema = void 0;
-const dto_1 = __webpack_require__(40);
-const z_1 = __webpack_require__(41);
-exports.urlSchema = z_1.z.object({ url: z_1.z.string().url() });
-class UrlDto extends (0, dto_1.createZodDto)(exports.urlSchema) {
+exports.UpdateResumeDto = exports.updateResumeSchema = void 0;
+const dto_1 = __webpack_require__(41);
+const resume_1 = __webpack_require__(106);
+exports.updateResumeSchema = resume_1.resumeSchema.partial();
+class UpdateResumeDto extends (0, dto_1.createZodDto)(exports.updateResumeSchema) {
 }
-exports.UrlDto = UrlDto;
+exports.UpdateResumeDto = UpdateResumeDto;
 
 
 /***/ }),
@@ -12108,9 +12122,24 @@ exports.UrlDto = UrlDto;
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.UrlDto = exports.urlSchema = void 0;
+const dto_1 = __webpack_require__(41);
+const z_1 = __webpack_require__(42);
+exports.urlSchema = z_1.z.object({ url: z_1.z.string().url() });
+class UrlDto extends (0, dto_1.createZodDto)(exports.urlSchema) {
+}
+exports.UrlDto = UrlDto;
+
+
+/***/ }),
+/* 109 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.StatisticsDto = exports.statisticsSchema = void 0;
-const dto_1 = __webpack_require__(40);
-const z_1 = __webpack_require__(41);
+const dto_1 = __webpack_require__(41);
+const z_1 = __webpack_require__(42);
 exports.statisticsSchema = z_1.z.object({
     views: z_1.z.number().int().default(0),
     downloads: z_1.z.number().int().default(0),
@@ -12121,7 +12150,7 @@ exports.StatisticsDto = StatisticsDto;
 
 
 /***/ }),
-/* 109 */
+/* 110 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -12131,15 +12160,15 @@ exports.AuthService = void 0;
 const tslib_1 = __webpack_require__(1);
 const common_1 = __webpack_require__(2);
 const config_1 = __webpack_require__(3);
-const jwt_1 = __webpack_require__(17);
-const library_1 = __webpack_require__(36);
-const utils_1 = __webpack_require__(82);
-const bcryptjs = tslib_1.__importStar(__webpack_require__(110));
-const crypto_1 = __webpack_require__(111);
-const otplib_1 = __webpack_require__(112);
-const mail_service_1 = __webpack_require__(22);
-const user_service_1 = __webpack_require__(113);
-const utils_service_1 = __webpack_require__(114);
+const jwt_1 = __webpack_require__(18);
+const library_1 = __webpack_require__(37);
+const utils_1 = __webpack_require__(83);
+const bcryptjs = tslib_1.__importStar(__webpack_require__(111));
+const crypto_1 = __webpack_require__(112);
+const otplib_1 = __webpack_require__(113);
+const mail_service_1 = __webpack_require__(23);
+const user_service_1 = __webpack_require__(114);
+const utils_service_1 = __webpack_require__(115);
 let AuthService = class AuthService {
     constructor(configService, userService, mailService, jwtService, utils) {
         this.configService = configService;
@@ -12501,25 +12530,25 @@ exports.AuthService = AuthService = tslib_1.__decorate([
 
 
 /***/ }),
-/* 110 */
+/* 111 */
 /***/ ((module) => {
 
 module.exports = require("bcryptjs");
 
 /***/ }),
-/* 111 */
+/* 112 */
 /***/ ((module) => {
 
 module.exports = require("crypto");
 
 /***/ }),
-/* 112 */
+/* 113 */
 /***/ ((module) => {
 
 module.exports = require("otplib");
 
 /***/ }),
-/* 113 */
+/* 114 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -12528,10 +12557,10 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.UserService = void 0;
 const tslib_1 = __webpack_require__(1);
 const common_1 = __webpack_require__(2);
-const utils_1 = __webpack_require__(82);
-const nestjs_redis_1 = __webpack_require__(33);
+const utils_1 = __webpack_require__(83);
+const nestjs_redis_1 = __webpack_require__(34);
 const nestjs_prisma_1 = __webpack_require__(10);
-const storage_service_1 = __webpack_require__(31);
+const storage_service_1 = __webpack_require__(32);
 let UserService = class UserService {
     constructor(prisma, storageService, redisService) {
         this.prisma = prisma;
@@ -12606,7 +12635,7 @@ exports.UserService = UserService = tslib_1.__decorate([
 
 
 /***/ }),
-/* 114 */
+/* 115 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -12617,7 +12646,7 @@ exports.UtilsService = void 0;
 const tslib_1 = __webpack_require__(1);
 const common_1 = __webpack_require__(2);
 const config_1 = __webpack_require__(3);
-const nestjs_redis_1 = __webpack_require__(33);
+const nestjs_redis_1 = __webpack_require__(34);
 let UtilsService = UtilsService_1 = class UtilsService {
     constructor(redisService, configService) {
         this.redisService = redisService;
@@ -12667,7 +12696,7 @@ exports.UtilsService = UtilsService = UtilsService_1 = tslib_1.__decorate([
 
 
 /***/ }),
-/* 115 */
+/* 116 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -12677,21 +12706,21 @@ exports.AuthController = void 0;
 const tslib_1 = __webpack_require__(1);
 const common_1 = __webpack_require__(2);
 const swagger_1 = __webpack_require__(5);
-const dto_1 = __webpack_require__(37);
-const mailer_1 = __webpack_require__(20);
-const utils_1 = __webpack_require__(82);
-const user_decorator_1 = __webpack_require__(30);
-const utils_service_1 = __webpack_require__(114);
-const auth_service_1 = __webpack_require__(109);
-const github_guard_1 = __webpack_require__(116);
-const google_guard_1 = __webpack_require__(117);
-const jwt_guard_1 = __webpack_require__(118);
-const local_guard_1 = __webpack_require__(119);
-const refresh_guard_1 = __webpack_require__(120);
-const two_factor_guard_1 = __webpack_require__(29);
-const cookie_1 = __webpack_require__(121);
-const payload_1 = __webpack_require__(122);
-const mail_service_1 = __webpack_require__(22);
+const dto_1 = __webpack_require__(38);
+const mailer_1 = __webpack_require__(21);
+const utils_1 = __webpack_require__(83);
+const user_decorator_1 = __webpack_require__(31);
+const utils_service_1 = __webpack_require__(115);
+const auth_service_1 = __webpack_require__(110);
+const github_guard_1 = __webpack_require__(117);
+const google_guard_1 = __webpack_require__(118);
+const jwt_guard_1 = __webpack_require__(119);
+const local_guard_1 = __webpack_require__(120);
+const refresh_guard_1 = __webpack_require__(121);
+const two_factor_guard_1 = __webpack_require__(30);
+const cookie_1 = __webpack_require__(122);
+const payload_1 = __webpack_require__(123);
+const mail_service_1 = __webpack_require__(23);
 let AuthController = class AuthController {
     constructor(authService, utils, mailservice, mailService) {
         this.authService = authService;
@@ -13086,7 +13115,7 @@ exports.AuthController = AuthController = tslib_1.__decorate([
 
 
 /***/ }),
-/* 116 */
+/* 117 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -13094,7 +13123,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.GitHubGuard = void 0;
 const tslib_1 = __webpack_require__(1);
 const common_1 = __webpack_require__(2);
-const passport_1 = __webpack_require__(18);
+const passport_1 = __webpack_require__(19);
 let GitHubGuard = class GitHubGuard extends (0, passport_1.AuthGuard)("github") {
 };
 exports.GitHubGuard = GitHubGuard;
@@ -13104,7 +13133,7 @@ exports.GitHubGuard = GitHubGuard = tslib_1.__decorate([
 
 
 /***/ }),
-/* 117 */
+/* 118 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -13112,7 +13141,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.GoogleGuard = void 0;
 const tslib_1 = __webpack_require__(1);
 const common_1 = __webpack_require__(2);
-const passport_1 = __webpack_require__(18);
+const passport_1 = __webpack_require__(19);
 let GoogleGuard = class GoogleGuard extends (0, passport_1.AuthGuard)("google") {
 };
 exports.GoogleGuard = GoogleGuard;
@@ -13122,7 +13151,7 @@ exports.GoogleGuard = GoogleGuard = tslib_1.__decorate([
 
 
 /***/ }),
-/* 118 */
+/* 119 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -13130,7 +13159,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.JwtGuard = void 0;
 const tslib_1 = __webpack_require__(1);
 const common_1 = __webpack_require__(2);
-const passport_1 = __webpack_require__(18);
+const passport_1 = __webpack_require__(19);
 let JwtGuard = class JwtGuard extends (0, passport_1.AuthGuard)("jwt") {
 };
 exports.JwtGuard = JwtGuard;
@@ -13140,7 +13169,7 @@ exports.JwtGuard = JwtGuard = tslib_1.__decorate([
 
 
 /***/ }),
-/* 119 */
+/* 120 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -13148,7 +13177,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.LocalGuard = void 0;
 const tslib_1 = __webpack_require__(1);
 const common_1 = __webpack_require__(2);
-const passport_1 = __webpack_require__(18);
+const passport_1 = __webpack_require__(19);
 let LocalGuard = class LocalGuard extends (0, passport_1.AuthGuard)("local") {
 };
 exports.LocalGuard = LocalGuard;
@@ -13158,7 +13187,7 @@ exports.LocalGuard = LocalGuard = tslib_1.__decorate([
 
 
 /***/ }),
-/* 120 */
+/* 121 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -13166,7 +13195,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.RefreshGuard = void 0;
 const tslib_1 = __webpack_require__(1);
 const common_1 = __webpack_require__(2);
-const passport_1 = __webpack_require__(18);
+const passport_1 = __webpack_require__(19);
 let RefreshGuard = class RefreshGuard extends (0, passport_1.AuthGuard)("refresh") {
 };
 exports.RefreshGuard = RefreshGuard;
@@ -13176,7 +13205,7 @@ exports.RefreshGuard = RefreshGuard = tslib_1.__decorate([
 
 
 /***/ }),
-/* 121 */
+/* 122 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -13208,14 +13237,14 @@ exports.getCookieOptions = getCookieOptions;
 
 
 /***/ }),
-/* 122 */
+/* 123 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.payloadSchema = void 0;
-const schema_1 = __webpack_require__(46);
-const z_1 = __webpack_require__(41);
+const schema_1 = __webpack_require__(47);
+const z_1 = __webpack_require__(42);
 exports.payloadSchema = z_1.z.object({
     id: schema_1.idSchema,
     isTwoFactorAuth: z_1.z.boolean().optional(),
@@ -13223,7 +13252,7 @@ exports.payloadSchema = z_1.z.object({
 
 
 /***/ }),
-/* 123 */
+/* 124 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -13231,8 +13260,8 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.DummyStrategy = void 0;
 const tslib_1 = __webpack_require__(1);
 const common_1 = __webpack_require__(2);
-const passport_1 = __webpack_require__(18);
-const passport_2 = __webpack_require__(124);
+const passport_1 = __webpack_require__(19);
+const passport_2 = __webpack_require__(125);
 let DummyStrategy = class DummyStrategy extends (0, passport_1.PassportStrategy)(passport_2.Strategy, "dummy") {
     constructor() {
         super();
@@ -13249,13 +13278,13 @@ exports.DummyStrategy = DummyStrategy = tslib_1.__decorate([
 
 
 /***/ }),
-/* 124 */
+/* 125 */
 /***/ ((module) => {
 
 module.exports = require("passport");
 
 /***/ }),
-/* 125 */
+/* 126 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -13264,11 +13293,11 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.GitHubStrategy = void 0;
 const tslib_1 = __webpack_require__(1);
 const common_1 = __webpack_require__(2);
-const passport_1 = __webpack_require__(18);
-const utils_1 = __webpack_require__(82);
-const utils_2 = __webpack_require__(82);
-const passport_github2_1 = __webpack_require__(126);
-const user_service_1 = __webpack_require__(113);
+const passport_1 = __webpack_require__(19);
+const utils_1 = __webpack_require__(83);
+const utils_2 = __webpack_require__(83);
+const passport_github2_1 = __webpack_require__(127);
+const user_service_1 = __webpack_require__(114);
 let GitHubStrategy = class GitHubStrategy extends (0, passport_1.PassportStrategy)(passport_github2_1.Strategy, "github") {
     constructor(clientID, clientSecret, callbackURL, userService) {
         super({ clientID, clientSecret, callbackURL, scope: ["user:email"] });
@@ -13318,13 +13347,13 @@ exports.GitHubStrategy = GitHubStrategy = tslib_1.__decorate([
 
 
 /***/ }),
-/* 126 */
+/* 127 */
 /***/ ((module) => {
 
 module.exports = require("passport-github2");
 
 /***/ }),
-/* 127 */
+/* 128 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -13333,11 +13362,11 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.GoogleStrategy = void 0;
 const tslib_1 = __webpack_require__(1);
 const common_1 = __webpack_require__(2);
-const passport_1 = __webpack_require__(18);
-const utils_1 = __webpack_require__(82);
-const utils_2 = __webpack_require__(82);
-const passport_google_oauth20_1 = __webpack_require__(128);
-const user_service_1 = __webpack_require__(113);
+const passport_1 = __webpack_require__(19);
+const utils_1 = __webpack_require__(83);
+const utils_2 = __webpack_require__(83);
+const passport_google_oauth20_1 = __webpack_require__(129);
+const user_service_1 = __webpack_require__(114);
 let GoogleStrategy = class GoogleStrategy extends (0, passport_1.PassportStrategy)(passport_google_oauth20_1.Strategy, "google") {
     constructor(clientID, clientSecret, callbackURL, userService) {
         super({ clientID, clientSecret, callbackURL, scope: ["email", "profile"] });
@@ -13387,13 +13416,13 @@ exports.GoogleStrategy = GoogleStrategy = tslib_1.__decorate([
 
 
 /***/ }),
-/* 128 */
+/* 129 */
 /***/ ((module) => {
 
 module.exports = require("passport-google-oauth20");
 
 /***/ }),
-/* 129 */
+/* 130 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -13403,9 +13432,9 @@ exports.JwtStrategy = void 0;
 const tslib_1 = __webpack_require__(1);
 const common_1 = __webpack_require__(2);
 const config_1 = __webpack_require__(3);
-const passport_1 = __webpack_require__(18);
-const passport_jwt_1 = __webpack_require__(130);
-const user_service_1 = __webpack_require__(113);
+const passport_1 = __webpack_require__(19);
+const passport_jwt_1 = __webpack_require__(131);
+const user_service_1 = __webpack_require__(114);
 let JwtStrategy = class JwtStrategy extends (0, passport_1.PassportStrategy)(passport_jwt_1.Strategy, "jwt") {
     constructor(configService, userService) {
         const extractors = [(request) => request?.cookies?.Authentication];
@@ -13429,13 +13458,13 @@ exports.JwtStrategy = JwtStrategy = tslib_1.__decorate([
 
 
 /***/ }),
-/* 130 */
+/* 131 */
 /***/ ((module) => {
 
 module.exports = require("passport-jwt");
 
 /***/ }),
-/* 131 */
+/* 132 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -13444,10 +13473,10 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.LocalStrategy = void 0;
 const tslib_1 = __webpack_require__(1);
 const common_1 = __webpack_require__(2);
-const passport_1 = __webpack_require__(18);
-const utils_1 = __webpack_require__(82);
-const passport_local_1 = __webpack_require__(132);
-const auth_service_1 = __webpack_require__(109);
+const passport_1 = __webpack_require__(19);
+const utils_1 = __webpack_require__(83);
+const passport_local_1 = __webpack_require__(133);
+const auth_service_1 = __webpack_require__(110);
 let LocalStrategy = class LocalStrategy extends (0, passport_1.PassportStrategy)(passport_local_1.Strategy, "local") {
     constructor(authService) {
         super({ usernameField: "identifier" });
@@ -13470,13 +13499,13 @@ exports.LocalStrategy = LocalStrategy = tslib_1.__decorate([
 
 
 /***/ }),
-/* 132 */
+/* 133 */
 /***/ ((module) => {
 
 module.exports = require("passport-local");
 
 /***/ }),
-/* 133 */
+/* 134 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -13486,9 +13515,9 @@ exports.RefreshStrategy = void 0;
 const tslib_1 = __webpack_require__(1);
 const common_1 = __webpack_require__(2);
 const config_1 = __webpack_require__(3);
-const passport_1 = __webpack_require__(18);
-const passport_jwt_1 = __webpack_require__(130);
-const auth_service_1 = __webpack_require__(109);
+const passport_1 = __webpack_require__(19);
+const passport_jwt_1 = __webpack_require__(131);
+const auth_service_1 = __webpack_require__(110);
 let RefreshStrategy = class RefreshStrategy extends (0, passport_1.PassportStrategy)(passport_jwt_1.Strategy, "refresh") {
     constructor(configService, authService) {
         const extractors = [(request) => request?.cookies?.Refresh];
@@ -13514,7 +13543,7 @@ exports.RefreshStrategy = RefreshStrategy = tslib_1.__decorate([
 
 
 /***/ }),
-/* 134 */
+/* 135 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -13524,9 +13553,9 @@ exports.TwoFactorStrategy = void 0;
 const tslib_1 = __webpack_require__(1);
 const common_1 = __webpack_require__(2);
 const config_1 = __webpack_require__(3);
-const passport_1 = __webpack_require__(18);
-const passport_jwt_1 = __webpack_require__(130);
-const user_service_1 = __webpack_require__(113);
+const passport_1 = __webpack_require__(19);
+const passport_jwt_1 = __webpack_require__(131);
+const user_service_1 = __webpack_require__(114);
 let TwoFactorStrategy = class TwoFactorStrategy extends (0, passport_1.PassportStrategy)(passport_jwt_1.Strategy, "two-factor") {
     constructor(configService, userService) {
         const extractors = [(request) => request?.cookies?.Authentication];
@@ -13555,7 +13584,616 @@ exports.TwoFactorStrategy = TwoFactorStrategy = tslib_1.__decorate([
 
 
 /***/ }),
-/* 135 */
+/* 136 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+
+var _a, _b, _c, _d, _e;
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.AdminAuthController = void 0;
+const tslib_1 = __webpack_require__(1);
+const common_1 = __webpack_require__(2);
+const swagger_1 = __webpack_require__(5);
+const dto_1 = __webpack_require__(38);
+const utils_1 = __webpack_require__(83);
+const library_1 = __webpack_require__(37);
+const auth_service_1 = __webpack_require__(110);
+const local_guard_1 = __webpack_require__(120);
+const cookie_1 = __webpack_require__(122);
+const payload_1 = __webpack_require__(123);
+const admin_service_1 = __webpack_require__(137);
+const nestjs_prisma_1 = __webpack_require__(10);
+const bcryptjs = tslib_1.__importStar(__webpack_require__(111));
+let AdminAuthController = class AdminAuthController {
+    constructor(authService, adminService, prisma) {
+        this.authService = authService;
+        this.adminService = adminService;
+        this.prisma = prisma;
+    }
+    async exchangeToken(id, email) {
+        const payload = payload_1.payloadSchema.parse({ id, isTwoFactorAuth: false });
+        const accessToken = this.authService.generateToken("access", payload);
+        const refreshToken = this.authService.generateToken("refresh", payload);
+        await this.authService.setRefreshToken(email, refreshToken);
+        return { accessToken, refreshToken };
+    }
+    async register(registerDto, response) {
+        const hashedPassword = await bcryptjs.hash(registerDto.password, 10);
+        try {
+            const user = await this.prisma.user.create({
+                data: {
+                    name: registerDto.name,
+                    email: registerDto.email,
+                    username: registerDto.username,
+                    locale: registerDto.locale || "en-US",
+                    provider: "email",
+                    emailVerified: true, // Admin accounts are auto-verified
+                    isAdmin: true, // Set admin flag
+                    secrets: {
+                        create: {
+                            password: hashedPassword,
+                        },
+                    },
+                },
+                include: {
+                    secrets: true,
+                },
+            });
+            const { accessToken, refreshToken } = await this.exchangeToken(user.id, user.email);
+            response.cookie("Authentication", accessToken, (0, cookie_1.getCookieOptions)("access"));
+            response.cookie("Refresh", refreshToken, (0, cookie_1.getCookieOptions)("refresh"));
+            // Extract user without secrets, ensuring isAdmin is included
+            const { secrets, ...userWithoutSecrets } = user;
+            const responseData = {
+                status: "authenticated",
+                user: {
+                    ...userWithoutSecrets,
+                    isAdmin: user.isAdmin,
+                },
+            };
+            response.status(201).send(responseData);
+        }
+        catch (error) {
+            common_1.Logger.error(`Admin registration error: ${error instanceof Error ? error.message : String(error)}`, "AdminAuthController#register");
+            if (error instanceof library_1.PrismaClientKnownRequestError && error.code === "P2002") {
+                throw new common_1.BadRequestException(utils_1.ErrorMessage.UserAlreadyExists);
+            }
+            throw new common_1.InternalServerErrorException(error instanceof Error ? error.message : utils_1.ErrorMessage.SomethingWentWrong);
+        }
+    }
+    async login(loginDto, response) {
+        const user = await this.authService.authenticate(loginDto);
+        // Check if user is admin
+        if (!user.isAdmin) {
+            throw new common_1.BadRequestException("Only admin users can access this area");
+        }
+        const { accessToken, refreshToken } = await this.exchangeToken(user.id, user.email);
+        response.cookie("Authentication", accessToken, (0, cookie_1.getCookieOptions)("access"));
+        response.cookie("Refresh", refreshToken, (0, cookie_1.getCookieOptions)("refresh"));
+        // Extract user without secrets, ensuring isAdmin is included
+        const { secrets, ...userWithoutSecrets } = user;
+        const responseData = {
+            status: "authenticated",
+            user: {
+                ...userWithoutSecrets,
+                isAdmin: user.isAdmin,
+            },
+        };
+        response.status(200).send(responseData);
+    }
+};
+exports.AdminAuthController = AdminAuthController;
+tslib_1.__decorate([
+    (0, common_1.Post)("register"),
+    (0, common_1.HttpCode)(201),
+    tslib_1.__param(0, (0, common_1.Body)()),
+    tslib_1.__param(1, (0, common_1.Res)()),
+    tslib_1.__metadata("design:type", Function),
+    tslib_1.__metadata("design:paramtypes", [typeof (_d = typeof dto_1.RegisterDto !== "undefined" && dto_1.RegisterDto) === "function" ? _d : Object, Object]),
+    tslib_1.__metadata("design:returntype", Promise)
+], AdminAuthController.prototype, "register", null);
+tslib_1.__decorate([
+    (0, common_1.Post)("login"),
+    (0, common_1.UseGuards)(local_guard_1.LocalGuard),
+    (0, common_1.HttpCode)(200),
+    tslib_1.__param(0, (0, common_1.Body)()),
+    tslib_1.__param(1, (0, common_1.Res)()),
+    tslib_1.__metadata("design:type", Function),
+    tslib_1.__metadata("design:paramtypes", [typeof (_e = typeof dto_1.LoginDto !== "undefined" && dto_1.LoginDto) === "function" ? _e : Object, Object]),
+    tslib_1.__metadata("design:returntype", Promise)
+], AdminAuthController.prototype, "login", null);
+exports.AdminAuthController = AdminAuthController = tslib_1.__decorate([
+    (0, swagger_1.ApiTags)("Admin Auth"),
+    (0, common_1.Controller)("admin/auth"),
+    tslib_1.__metadata("design:paramtypes", [typeof (_a = typeof auth_service_1.AuthService !== "undefined" && auth_service_1.AuthService) === "function" ? _a : Object, typeof (_b = typeof admin_service_1.AdminService !== "undefined" && admin_service_1.AdminService) === "function" ? _b : Object, typeof (_c = typeof nestjs_prisma_1.PrismaService !== "undefined" && nestjs_prisma_1.PrismaService) === "function" ? _c : Object])
+], AdminAuthController);
+
+
+/***/ }),
+/* 137 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+
+var _a;
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.AdminService = void 0;
+const tslib_1 = __webpack_require__(1);
+const common_1 = __webpack_require__(2);
+const nestjs_prisma_1 = __webpack_require__(10);
+let AdminService = class AdminService {
+    constructor(prisma) {
+        this.prisma = prisma;
+    }
+    async getCandidateCount() {
+        return await this.prisma.user.count({
+            where: {
+                isAdmin: false,
+            },
+        });
+    }
+    async getResumeCount() {
+        return await this.prisma.resume.count();
+    }
+    async getUsersByProvider() {
+        const users = await this.prisma.user.groupBy({
+            by: ["provider"],
+            where: {
+                isAdmin: false,
+            },
+            _count: {
+                id: true,
+            },
+        });
+        return users.map((user) => ({
+            provider: user.provider,
+            count: user._count.id,
+        }));
+    }
+    async getEmailVerifiedCount() {
+        return await this.prisma.user.count({
+            where: {
+                emailVerified: true,
+                isAdmin: false,
+            },
+        });
+    }
+    async getTwoFactorEnabledCount() {
+        return await this.prisma.user.count({
+            where: {
+                twoFactorEnabled: true,
+                isAdmin: false,
+            },
+        });
+    }
+    async getRecentUsers(limit = 5) {
+        return await this.prisma.user.findMany({
+            take: limit,
+            orderBy: {
+                createdAt: "desc",
+            },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                username: true,
+                picture: true,
+                provider: true,
+                emailVerified: true,
+                createdAt: true,
+            },
+        });
+    }
+    async getStatistics() {
+        const [candidateCount, resumeCount, emailVerifiedCount, twoFactorEnabledCount, usersByProvider,] = await Promise.all([
+            this.getCandidateCount(),
+            this.getResumeCount(),
+            this.getEmailVerifiedCount(),
+            this.getTwoFactorEnabledCount(),
+            this.getUsersByProvider(),
+        ]);
+        return {
+            candidates: candidateCount,
+            resumes: resumeCount,
+            emailVerified: emailVerifiedCount,
+            twoFactorEnabled: twoFactorEnabledCount,
+            usersByProvider,
+        };
+    }
+    async getAllUsers(skip = 0, take = 50) {
+        const [users, total] = await Promise.all([
+            this.prisma.user.findMany({
+                where: {
+                    isAdmin: false,
+                },
+                skip,
+                take,
+                orderBy: {
+                    createdAt: "desc",
+                },
+                select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    username: true,
+                    picture: true,
+                    provider: true,
+                    emailVerified: true,
+                    twoFactorEnabled: true,
+                    createdAt: true,
+                    updatedAt: true,
+                    _count: {
+                        select: {
+                            resumes: true,
+                        },
+                    },
+                },
+            }),
+            this.prisma.user.count({
+                where: {
+                    isAdmin: false,
+                },
+            }),
+        ]);
+        return {
+            users,
+            total,
+            page: Math.floor(skip / take) + 1,
+            pageSize: take,
+            totalPages: Math.ceil(total / take),
+        };
+    }
+    async getAllResumes(skip = 0, take = 50) {
+        const [resumes, total] = await Promise.all([
+            this.prisma.resume.findMany({
+                skip,
+                take,
+                orderBy: {
+                    createdAt: "desc",
+                },
+                include: {
+                    user: {
+                        select: {
+                            id: true,
+                            name: true,
+                            email: true,
+                            username: true,
+                        },
+                    },
+                },
+            }),
+            this.prisma.resume.count(),
+        ]);
+        return {
+            resumes,
+            total,
+            page: Math.floor(skip / take) + 1,
+            pageSize: take,
+            totalPages: Math.ceil(total / take),
+        };
+    }
+    async getUsersByEmailVerified(emailVerified, skip = 0, take = 50) {
+        const [users, total] = await Promise.all([
+            this.prisma.user.findMany({
+                where: {
+                    emailVerified,
+                    isAdmin: false,
+                },
+                skip,
+                take,
+                orderBy: {
+                    createdAt: "desc",
+                },
+                select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    username: true,
+                    picture: true,
+                    provider: true,
+                    emailVerified: true,
+                    twoFactorEnabled: true,
+                    createdAt: true,
+                    updatedAt: true,
+                    _count: {
+                        select: {
+                            resumes: true,
+                        },
+                    },
+                },
+            }),
+            this.prisma.user.count({
+                where: {
+                    emailVerified,
+                    isAdmin: false,
+                },
+            }),
+        ]);
+        return {
+            users,
+            total,
+            page: Math.floor(skip / take) + 1,
+            pageSize: take,
+            totalPages: Math.ceil(total / take),
+        };
+    }
+    async getUsersByTwoFactor(twoFactorEnabled, skip = 0, take = 50) {
+        const [users, total] = await Promise.all([
+            this.prisma.user.findMany({
+                where: {
+                    twoFactorEnabled,
+                    isAdmin: false,
+                },
+                skip,
+                take,
+                orderBy: {
+                    createdAt: "desc",
+                },
+                select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    username: true,
+                    picture: true,
+                    provider: true,
+                    emailVerified: true,
+                    twoFactorEnabled: true,
+                    createdAt: true,
+                    updatedAt: true,
+                    _count: {
+                        select: {
+                            resumes: true,
+                        },
+                    },
+                },
+            }),
+            this.prisma.user.count({
+                where: {
+                    twoFactorEnabled,
+                    isAdmin: false,
+                },
+            }),
+        ]);
+        return {
+            users,
+            total,
+            page: Math.floor(skip / take) + 1,
+            pageSize: take,
+            totalPages: Math.ceil(total / take),
+        };
+    }
+    async getUsersByProviderFilter(provider, skip = 0, take = 50) {
+        const [users, total] = await Promise.all([
+            this.prisma.user.findMany({
+                where: {
+                    provider: provider,
+                    isAdmin: false,
+                },
+                skip,
+                take,
+                orderBy: {
+                    createdAt: "desc",
+                },
+                select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    username: true,
+                    picture: true,
+                    provider: true,
+                    emailVerified: true,
+                    twoFactorEnabled: true,
+                    createdAt: true,
+                    updatedAt: true,
+                    _count: {
+                        select: {
+                            resumes: true,
+                        },
+                    },
+                },
+            }),
+            this.prisma.user.count({
+                where: {
+                    provider: provider,
+                    isAdmin: false,
+                },
+            }),
+        ]);
+        return {
+            users,
+            total,
+            page: Math.floor(skip / take) + 1,
+            pageSize: take,
+            totalPages: Math.ceil(total / take),
+        };
+    }
+};
+exports.AdminService = AdminService;
+exports.AdminService = AdminService = tslib_1.__decorate([
+    (0, common_1.Injectable)(),
+    tslib_1.__metadata("design:paramtypes", [typeof (_a = typeof nestjs_prisma_1.PrismaService !== "undefined" && nestjs_prisma_1.PrismaService) === "function" ? _a : Object])
+], AdminService);
+
+
+/***/ }),
+/* 138 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+
+var _a;
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.AdminController = void 0;
+const tslib_1 = __webpack_require__(1);
+const common_1 = __webpack_require__(2);
+const swagger_1 = __webpack_require__(5);
+const admin_guard_1 = __webpack_require__(139);
+const admin_service_1 = __webpack_require__(137);
+let AdminController = class AdminController {
+    constructor(adminService) {
+        this.adminService = adminService;
+    }
+    async getCandidateCount() {
+        const count = await this.adminService.getCandidateCount();
+        return { count };
+    }
+    async getResumeCount() {
+        const count = await this.adminService.getResumeCount();
+        return { count };
+    }
+    async getUsersByProvider() {
+        return await this.adminService.getUsersByProvider();
+    }
+    async getStatistics() {
+        return await this.adminService.getStatistics();
+    }
+    async getRecentUsers(limit) {
+        const limitNum = limit ? parseInt(limit, 10) : 5;
+        return await this.adminService.getRecentUsers(limitNum);
+    }
+    async getAllUsers(skip, take) {
+        const skipNum = skip ? parseInt(skip, 10) : 0;
+        const takeNum = take ? parseInt(take, 10) : 50;
+        return await this.adminService.getAllUsers(skipNum, takeNum);
+    }
+    async getAllResumes(skip, take) {
+        const skipNum = skip ? parseInt(skip, 10) : 0;
+        const takeNum = take ? parseInt(take, 10) : 50;
+        return await this.adminService.getAllResumes(skipNum, takeNum);
+    }
+    async getUsersByEmailVerified(verified, skip, take) {
+        const emailVerified = verified === "true" || verified === undefined;
+        const skipNum = skip ? parseInt(skip, 10) : 0;
+        const takeNum = take ? parseInt(take, 10) : 50;
+        return await this.adminService.getUsersByEmailVerified(emailVerified, skipNum, takeNum);
+    }
+    async getUsersByTwoFactor(enabled, skip, take) {
+        const twoFactorEnabled = enabled === "true" || enabled === undefined;
+        const skipNum = skip ? parseInt(skip, 10) : 0;
+        const takeNum = take ? parseInt(take, 10) : 50;
+        return await this.adminService.getUsersByTwoFactor(twoFactorEnabled, skipNum, takeNum);
+    }
+    async getUsersByProviderFilter(provider, skip, take) {
+        const skipNum = skip ? parseInt(skip, 10) : 0;
+        const takeNum = take ? parseInt(take, 10) : 50;
+        return await this.adminService.getUsersByProviderFilter(provider, skipNum, takeNum);
+    }
+};
+exports.AdminController = AdminController;
+tslib_1.__decorate([
+    (0, common_1.Get)("candidates/count"),
+    tslib_1.__metadata("design:type", Function),
+    tslib_1.__metadata("design:paramtypes", []),
+    tslib_1.__metadata("design:returntype", Promise)
+], AdminController.prototype, "getCandidateCount", null);
+tslib_1.__decorate([
+    (0, common_1.Get)("resumes/count"),
+    tslib_1.__metadata("design:type", Function),
+    tslib_1.__metadata("design:paramtypes", []),
+    tslib_1.__metadata("design:returntype", Promise)
+], AdminController.prototype, "getResumeCount", null);
+tslib_1.__decorate([
+    (0, common_1.Get)("users/by-provider"),
+    tslib_1.__metadata("design:type", Function),
+    tslib_1.__metadata("design:paramtypes", []),
+    tslib_1.__metadata("design:returntype", Promise)
+], AdminController.prototype, "getUsersByProvider", null);
+tslib_1.__decorate([
+    (0, common_1.Get)("statistics"),
+    tslib_1.__metadata("design:type", Function),
+    tslib_1.__metadata("design:paramtypes", []),
+    tslib_1.__metadata("design:returntype", Promise)
+], AdminController.prototype, "getStatistics", null);
+tslib_1.__decorate([
+    (0, common_1.Get)("users/recent"),
+    tslib_1.__param(0, (0, common_1.Query)("limit")),
+    tslib_1.__metadata("design:type", Function),
+    tslib_1.__metadata("design:paramtypes", [String]),
+    tslib_1.__metadata("design:returntype", Promise)
+], AdminController.prototype, "getRecentUsers", null);
+tslib_1.__decorate([
+    (0, common_1.Get)("users"),
+    tslib_1.__param(0, (0, common_1.Query)("skip")),
+    tslib_1.__param(1, (0, common_1.Query)("take")),
+    tslib_1.__metadata("design:type", Function),
+    tslib_1.__metadata("design:paramtypes", [String, String]),
+    tslib_1.__metadata("design:returntype", Promise)
+], AdminController.prototype, "getAllUsers", null);
+tslib_1.__decorate([
+    (0, common_1.Get)("resumes"),
+    tslib_1.__param(0, (0, common_1.Query)("skip")),
+    tslib_1.__param(1, (0, common_1.Query)("take")),
+    tslib_1.__metadata("design:type", Function),
+    tslib_1.__metadata("design:paramtypes", [String, String]),
+    tslib_1.__metadata("design:returntype", Promise)
+], AdminController.prototype, "getAllResumes", null);
+tslib_1.__decorate([
+    (0, common_1.Get)("users/email-verified"),
+    tslib_1.__param(0, (0, common_1.Query)("verified")),
+    tslib_1.__param(1, (0, common_1.Query)("skip")),
+    tslib_1.__param(2, (0, common_1.Query)("take")),
+    tslib_1.__metadata("design:type", Function),
+    tslib_1.__metadata("design:paramtypes", [String, String, String]),
+    tslib_1.__metadata("design:returntype", Promise)
+], AdminController.prototype, "getUsersByEmailVerified", null);
+tslib_1.__decorate([
+    (0, common_1.Get)("users/two-factor"),
+    tslib_1.__param(0, (0, common_1.Query)("enabled")),
+    tslib_1.__param(1, (0, common_1.Query)("skip")),
+    tslib_1.__param(2, (0, common_1.Query)("take")),
+    tslib_1.__metadata("design:type", Function),
+    tslib_1.__metadata("design:paramtypes", [String, String, String]),
+    tslib_1.__metadata("design:returntype", Promise)
+], AdminController.prototype, "getUsersByTwoFactor", null);
+tslib_1.__decorate([
+    (0, common_1.Get)("users/provider/:provider"),
+    tslib_1.__param(0, (0, common_1.Param)("provider")),
+    tslib_1.__param(1, (0, common_1.Query)("skip")),
+    tslib_1.__param(2, (0, common_1.Query)("take")),
+    tslib_1.__metadata("design:type", Function),
+    tslib_1.__metadata("design:paramtypes", [String, String, String]),
+    tslib_1.__metadata("design:returntype", Promise)
+], AdminController.prototype, "getUsersByProviderFilter", null);
+exports.AdminController = AdminController = tslib_1.__decorate([
+    (0, swagger_1.ApiTags)("Admin"),
+    (0, common_1.Controller)("admin"),
+    (0, common_1.UseGuards)(admin_guard_1.AdminGuard),
+    tslib_1.__metadata("design:paramtypes", [typeof (_a = typeof admin_service_1.AdminService !== "undefined" && admin_service_1.AdminService) === "function" ? _a : Object])
+], AdminController);
+
+
+/***/ }),
+/* 139 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.AdminGuard = void 0;
+const tslib_1 = __webpack_require__(1);
+const common_1 = __webpack_require__(2);
+const jwt_guard_1 = __webpack_require__(119);
+let AdminGuard = class AdminGuard extends jwt_guard_1.JwtGuard {
+    async canActivate(context) {
+        // First check JWT authentication
+        const isAuthenticated = await super.canActivate(context);
+        if (!isAuthenticated) {
+            return false;
+        }
+        // Then check if user is admin
+        const request = context.switchToHttp().getRequest();
+        const user = request.user;
+        if (!user || !user.isAdmin) {
+            throw new common_1.ForbiddenException("Admin access required");
+        }
+        return true;
+    }
+};
+exports.AdminGuard = AdminGuard;
+exports.AdminGuard = AdminGuard = tslib_1.__decorate([
+    (0, common_1.Injectable)()
+], AdminGuard);
+
+
+/***/ }),
+/* 140 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -13564,7 +14202,7 @@ exports.CacheModule = void 0;
 const tslib_1 = __webpack_require__(1);
 const common_1 = __webpack_require__(2);
 const config_1 = __webpack_require__(3);
-const nestjs_redis_1 = __webpack_require__(33);
+const nestjs_redis_1 = __webpack_require__(34);
 let CacheModule = class CacheModule {
 };
 exports.CacheModule = CacheModule;
@@ -13583,7 +14221,7 @@ exports.CacheModule = CacheModule = tslib_1.__decorate([
 
 
 /***/ }),
-/* 136 */
+/* 141 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -13593,7 +14231,7 @@ const tslib_1 = __webpack_require__(1);
 const common_1 = __webpack_require__(2);
 const config_1 = __webpack_require__(3);
 const path_1 = __webpack_require__(15);
-const schema_1 = __webpack_require__(137);
+const schema_1 = __webpack_require__(142);
 let ConfigModule = class ConfigModule {
 };
 exports.ConfigModule = ConfigModule;
@@ -13618,13 +14256,13 @@ exports.ConfigModule = ConfigModule = tslib_1.__decorate([
 
 
 /***/ }),
-/* 137 */
+/* 142 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.configSchema = void 0;
-const z_1 = __webpack_require__(41);
+const z_1 = __webpack_require__(42);
 exports.configSchema = z_1.z.object({
     NODE_ENV: z_1.z.enum(["development", "production"]).default("production"),
     // Ports
@@ -13688,17 +14326,17 @@ exports.configSchema = z_1.z.object({
 
 
 /***/ }),
-/* 138 */
+/* 143 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ContributorsModule = void 0;
 const tslib_1 = __webpack_require__(1);
-const axios_1 = __webpack_require__(139);
+const axios_1 = __webpack_require__(144);
 const common_1 = __webpack_require__(2);
-const contributors_controller_1 = __webpack_require__(140);
-const contributors_service_1 = __webpack_require__(141);
+const contributors_controller_1 = __webpack_require__(145);
+const contributors_service_1 = __webpack_require__(146);
 let ContributorsModule = class ContributorsModule {
 };
 exports.ContributorsModule = ContributorsModule;
@@ -13712,13 +14350,13 @@ exports.ContributorsModule = ContributorsModule = tslib_1.__decorate([
 
 
 /***/ }),
-/* 139 */
+/* 144 */
 /***/ ((module) => {
 
 module.exports = require("@nestjs/axios");
 
 /***/ }),
-/* 140 */
+/* 145 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -13727,8 +14365,8 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ContributorsController = void 0;
 const tslib_1 = __webpack_require__(1);
 const common_1 = __webpack_require__(2);
-const utils_service_1 = __webpack_require__(114);
-const contributors_service_1 = __webpack_require__(141);
+const utils_service_1 = __webpack_require__(115);
+const contributors_service_1 = __webpack_require__(146);
 let ContributorsController = class ContributorsController {
     constructor(contributorsService, utils) {
         this.contributorsService = contributorsService;
@@ -13761,7 +14399,7 @@ exports.ContributorsController = ContributorsController = tslib_1.__decorate([
 
 
 /***/ }),
-/* 141 */
+/* 146 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -13769,7 +14407,7 @@ var _a, _b;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ContributorsService = void 0;
 const tslib_1 = __webpack_require__(1);
-const axios_1 = __webpack_require__(139);
+const axios_1 = __webpack_require__(144);
 const common_1 = __webpack_require__(2);
 const config_1 = __webpack_require__(3);
 let ContributorsService = class ContributorsService {
@@ -13817,7 +14455,7 @@ exports.ContributorsService = ContributorsService = tslib_1.__decorate([
 
 
 /***/ }),
-/* 142 */
+/* 147 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -13854,7 +14492,7 @@ exports.DatabaseModule = DatabaseModule = tslib_1.__decorate([
 
 
 /***/ }),
-/* 143 */
+/* 148 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -13862,14 +14500,14 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.HealthModule = void 0;
 const tslib_1 = __webpack_require__(1);
 const common_1 = __webpack_require__(2);
-const terminus_1 = __webpack_require__(144);
-const nestjs_redis_health_1 = __webpack_require__(145);
-const printer_module_1 = __webpack_require__(146);
-const storage_module_1 = __webpack_require__(25);
-const browser_health_1 = __webpack_require__(153);
-const database_health_1 = __webpack_require__(154);
-const health_controller_1 = __webpack_require__(155);
-const storage_health_1 = __webpack_require__(156);
+const terminus_1 = __webpack_require__(149);
+const nestjs_redis_health_1 = __webpack_require__(150);
+const printer_module_1 = __webpack_require__(151);
+const storage_module_1 = __webpack_require__(26);
+const browser_health_1 = __webpack_require__(158);
+const database_health_1 = __webpack_require__(159);
+const health_controller_1 = __webpack_require__(160);
+const storage_health_1 = __webpack_require__(161);
 let HealthModule = class HealthModule {
 };
 exports.HealthModule = HealthModule;
@@ -13883,29 +14521,29 @@ exports.HealthModule = HealthModule = tslib_1.__decorate([
 
 
 /***/ }),
-/* 144 */
+/* 149 */
 /***/ ((module) => {
 
 module.exports = require("@nestjs/terminus");
 
 /***/ }),
-/* 145 */
+/* 150 */
 /***/ ((module) => {
 
 module.exports = require("@songkeys/nestjs-redis-health");
 
 /***/ }),
-/* 146 */
+/* 151 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.PrinterModule = void 0;
 const tslib_1 = __webpack_require__(1);
-const axios_1 = __webpack_require__(139);
+const axios_1 = __webpack_require__(144);
 const common_1 = __webpack_require__(2);
-const storage_module_1 = __webpack_require__(25);
-const printer_service_1 = __webpack_require__(147);
+const storage_module_1 = __webpack_require__(26);
+const printer_service_1 = __webpack_require__(152);
 let PrinterModule = class PrinterModule {
 };
 exports.PrinterModule = PrinterModule;
@@ -13919,7 +14557,7 @@ exports.PrinterModule = PrinterModule = tslib_1.__decorate([
 
 
 /***/ }),
-/* 147 */
+/* 152 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -13928,20 +14566,20 @@ var _a, _b, _c, _d;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.PrinterService = void 0;
 const tslib_1 = __webpack_require__(1);
-const axios_1 = __webpack_require__(139);
+const axios_1 = __webpack_require__(144);
 const common_1 = __webpack_require__(2);
 const common_2 = __webpack_require__(2);
 const config_1 = __webpack_require__(3);
-const fontkit_1 = tslib_1.__importDefault(__webpack_require__(148));
-const utils_1 = __webpack_require__(82);
-const utils_2 = __webpack_require__(82);
-const async_retry_1 = tslib_1.__importDefault(__webpack_require__(149));
-const pdf_lib_1 = __webpack_require__(150);
-const puppeteer_1 = __webpack_require__(151);
-const fs = tslib_1.__importStar(__webpack_require__(152));
+const fontkit_1 = tslib_1.__importDefault(__webpack_require__(153));
+const utils_1 = __webpack_require__(83);
+const utils_2 = __webpack_require__(83);
+const async_retry_1 = tslib_1.__importDefault(__webpack_require__(154));
+const pdf_lib_1 = __webpack_require__(155);
+const puppeteer_1 = __webpack_require__(156);
+const fs = tslib_1.__importStar(__webpack_require__(157));
 const path = tslib_1.__importStar(__webpack_require__(15));
-const storage_service_1 = __webpack_require__(31);
-const utils_service_1 = __webpack_require__(114);
+const storage_service_1 = __webpack_require__(32);
+const utils_service_1 = __webpack_require__(115);
 let PrinterService = PrinterService_1 = class PrinterService {
     constructor(configService, storageService, httpService, utils) {
         this.configService = configService;
@@ -14362,37 +15000,37 @@ exports.PrinterService = PrinterService = PrinterService_1 = tslib_1.__decorate(
 
 
 /***/ }),
-/* 148 */
+/* 153 */
 /***/ ((module) => {
 
 module.exports = require("@pdf-lib/fontkit");
 
 /***/ }),
-/* 149 */
+/* 154 */
 /***/ ((module) => {
 
 module.exports = require("async-retry");
 
 /***/ }),
-/* 150 */
+/* 155 */
 /***/ ((module) => {
 
 module.exports = require("pdf-lib");
 
 /***/ }),
-/* 151 */
+/* 156 */
 /***/ ((module) => {
 
 module.exports = require("puppeteer");
 
 /***/ }),
-/* 152 */
+/* 157 */
 /***/ ((module) => {
 
 module.exports = require("fs");
 
 /***/ }),
-/* 153 */
+/* 158 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -14401,8 +15039,8 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.BrowserHealthIndicator = void 0;
 const tslib_1 = __webpack_require__(1);
 const common_1 = __webpack_require__(2);
-const terminus_1 = __webpack_require__(144);
-const printer_service_1 = __webpack_require__(147);
+const terminus_1 = __webpack_require__(149);
+const printer_service_1 = __webpack_require__(152);
 let BrowserHealthIndicator = class BrowserHealthIndicator extends terminus_1.HealthIndicator {
     constructor(printerService) {
         super();
@@ -14426,7 +15064,7 @@ exports.BrowserHealthIndicator = BrowserHealthIndicator = tslib_1.__decorate([
 
 
 /***/ }),
-/* 154 */
+/* 159 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -14435,7 +15073,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.DatabaseHealthIndicator = void 0;
 const tslib_1 = __webpack_require__(1);
 const common_1 = __webpack_require__(2);
-const terminus_1 = __webpack_require__(144);
+const terminus_1 = __webpack_require__(149);
 const nestjs_prisma_1 = __webpack_require__(10);
 let DatabaseHealthIndicator = class DatabaseHealthIndicator extends terminus_1.HealthIndicator {
     constructor(prisma) {
@@ -14460,7 +15098,7 @@ exports.DatabaseHealthIndicator = DatabaseHealthIndicator = tslib_1.__decorate([
 
 
 /***/ }),
-/* 155 */
+/* 160 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -14470,14 +15108,14 @@ exports.HealthController = void 0;
 const tslib_1 = __webpack_require__(1);
 const common_1 = __webpack_require__(2);
 const swagger_1 = __webpack_require__(5);
-const terminus_1 = __webpack_require__(144);
-const nestjs_redis_1 = __webpack_require__(33);
-const nestjs_redis_health_1 = __webpack_require__(145);
-const schema_1 = __webpack_require__(137);
-const utils_service_1 = __webpack_require__(114);
-const browser_health_1 = __webpack_require__(153);
-const database_health_1 = __webpack_require__(154);
-const storage_health_1 = __webpack_require__(156);
+const terminus_1 = __webpack_require__(149);
+const nestjs_redis_1 = __webpack_require__(34);
+const nestjs_redis_health_1 = __webpack_require__(150);
+const schema_1 = __webpack_require__(142);
+const utils_service_1 = __webpack_require__(115);
+const browser_health_1 = __webpack_require__(158);
+const database_health_1 = __webpack_require__(159);
+const storage_health_1 = __webpack_require__(161);
 let HealthController = class HealthController {
     constructor(health, database, browser, storage, redisService, redis, utils) {
         this.health = health;
@@ -14533,7 +15171,7 @@ exports.HealthController = HealthController = tslib_1.__decorate([
 
 
 /***/ }),
-/* 156 */
+/* 161 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -14542,8 +15180,8 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.StorageHealthIndicator = void 0;
 const tslib_1 = __webpack_require__(1);
 const common_1 = __webpack_require__(2);
-const terminus_1 = __webpack_require__(144);
-const storage_service_1 = __webpack_require__(31);
+const terminus_1 = __webpack_require__(149);
+const storage_service_1 = __webpack_require__(32);
 let StorageHealthIndicator = class StorageHealthIndicator extends terminus_1.HealthIndicator {
     constructor(storageService) {
         super();
@@ -14567,7 +15205,7 @@ exports.StorageHealthIndicator = StorageHealthIndicator = tslib_1.__decorate([
 
 
 /***/ }),
-/* 157 */
+/* 162 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -14575,11 +15213,11 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ResumeModule = void 0;
 const tslib_1 = __webpack_require__(1);
 const common_1 = __webpack_require__(2);
-const auth_module_1 = __webpack_require__(16);
-const printer_module_1 = __webpack_require__(146);
-const storage_module_1 = __webpack_require__(25);
-const resume_controller_1 = __webpack_require__(158);
-const resume_service_1 = __webpack_require__(164);
+const auth_module_1 = __webpack_require__(17);
+const printer_module_1 = __webpack_require__(151);
+const storage_module_1 = __webpack_require__(26);
+const resume_controller_1 = __webpack_require__(163);
+const resume_service_1 = __webpack_require__(169);
 let ResumeModule = class ResumeModule {
 };
 exports.ResumeModule = ResumeModule;
@@ -14594,7 +15232,7 @@ exports.ResumeModule = ResumeModule = tslib_1.__decorate([
 
 
 /***/ }),
-/* 158 */
+/* 163 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -14604,19 +15242,19 @@ exports.ResumeController = void 0;
 const tslib_1 = __webpack_require__(1);
 const common_1 = __webpack_require__(2);
 const swagger_1 = __webpack_require__(5);
-const client_1 = __webpack_require__(159);
-const library_1 = __webpack_require__(36);
-const dto_1 = __webpack_require__(37);
-const schema_1 = __webpack_require__(46);
-const utils_1 = __webpack_require__(82);
-const zod_to_json_schema_1 = __webpack_require__(160);
-const user_decorator_1 = __webpack_require__(30);
-const optional_guard_1 = __webpack_require__(161);
-const two_factor_guard_1 = __webpack_require__(29);
-const utils_service_1 = __webpack_require__(114);
-const resume_decorator_1 = __webpack_require__(162);
-const resume_guard_1 = __webpack_require__(163);
-const resume_service_1 = __webpack_require__(164);
+const client_1 = __webpack_require__(164);
+const library_1 = __webpack_require__(37);
+const dto_1 = __webpack_require__(38);
+const schema_1 = __webpack_require__(47);
+const utils_1 = __webpack_require__(83);
+const zod_to_json_schema_1 = __webpack_require__(165);
+const user_decorator_1 = __webpack_require__(31);
+const optional_guard_1 = __webpack_require__(166);
+const two_factor_guard_1 = __webpack_require__(30);
+const utils_service_1 = __webpack_require__(115);
+const resume_decorator_1 = __webpack_require__(167);
+const resume_guard_1 = __webpack_require__(168);
+const resume_service_1 = __webpack_require__(169);
 let ResumeController = class ResumeController {
     constructor(resumeService, utils) {
         this.resumeService = resumeService;
@@ -14808,19 +15446,19 @@ exports.ResumeController = ResumeController = tslib_1.__decorate([
 
 
 /***/ }),
-/* 159 */
+/* 164 */
 /***/ ((module) => {
 
 module.exports = require("@prisma/client");
 
 /***/ }),
-/* 160 */
+/* 165 */
 /***/ ((module) => {
 
 module.exports = require("zod-to-json-schema");
 
 /***/ }),
-/* 161 */
+/* 166 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -14828,7 +15466,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.OptionalGuard = void 0;
 const tslib_1 = __webpack_require__(1);
 const common_1 = __webpack_require__(2);
-const passport_1 = __webpack_require__(18);
+const passport_1 = __webpack_require__(19);
 let OptionalGuard = class OptionalGuard extends (0, passport_1.AuthGuard)("two-factor") {
     handleRequest(error, user) {
         return user;
@@ -14841,7 +15479,7 @@ exports.OptionalGuard = OptionalGuard = tslib_1.__decorate([
 
 
 /***/ }),
-/* 162 */
+/* 167 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -14856,7 +15494,7 @@ exports.Resume = (0, common_1.createParamDecorator)((data, ctx) => {
 
 
 /***/ }),
-/* 163 */
+/* 168 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -14865,8 +15503,8 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ResumeGuard = void 0;
 const tslib_1 = __webpack_require__(1);
 const common_1 = __webpack_require__(2);
-const utils_1 = __webpack_require__(82);
-const resume_service_1 = __webpack_require__(164);
+const utils_1 = __webpack_require__(83);
+const resume_service_1 = __webpack_require__(169);
 let ResumeGuard = class ResumeGuard {
     constructor(resumeService) {
         this.resumeService = resumeService;
@@ -14905,7 +15543,7 @@ exports.ResumeGuard = ResumeGuard = tslib_1.__decorate([
 
 
 /***/ }),
-/* 164 */
+/* 169 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -14914,15 +15552,15 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ResumeService = void 0;
 const tslib_1 = __webpack_require__(1);
 const common_1 = __webpack_require__(2);
-const schema_1 = __webpack_require__(46);
-const utils_1 = __webpack_require__(82);
-const utils_2 = __webpack_require__(82);
-const nestjs_redis_1 = __webpack_require__(33);
-const deepmerge_1 = tslib_1.__importDefault(__webpack_require__(165));
+const schema_1 = __webpack_require__(47);
+const utils_1 = __webpack_require__(83);
+const utils_2 = __webpack_require__(83);
+const nestjs_redis_1 = __webpack_require__(34);
+const deepmerge_1 = tslib_1.__importDefault(__webpack_require__(170));
 const nestjs_prisma_1 = __webpack_require__(10);
-const printer_service_1 = __webpack_require__(147);
-const storage_service_1 = __webpack_require__(31);
-const utils_service_1 = __webpack_require__(114);
+const printer_service_1 = __webpack_require__(152);
+const storage_service_1 = __webpack_require__(32);
+const utils_service_1 = __webpack_require__(115);
 let ResumeService = class ResumeService {
     constructor(prisma, printerService, storageService, redisService, utils) {
         this.prisma = prisma;
@@ -15078,23 +15716,23 @@ exports.ResumeService = ResumeService = tslib_1.__decorate([
 
 
 /***/ }),
-/* 165 */
+/* 170 */
 /***/ ((module) => {
 
 module.exports = require("deepmerge");
 
 /***/ }),
-/* 166 */
+/* 171 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.TranslationModule = void 0;
 const tslib_1 = __webpack_require__(1);
-const axios_1 = __webpack_require__(139);
+const axios_1 = __webpack_require__(144);
 const common_1 = __webpack_require__(2);
-const translation_controller_1 = __webpack_require__(167);
-const translation_service_1 = __webpack_require__(168);
+const translation_controller_1 = __webpack_require__(172);
+const translation_service_1 = __webpack_require__(173);
 let TranslationModule = class TranslationModule {
 };
 exports.TranslationModule = TranslationModule;
@@ -15108,7 +15746,7 @@ exports.TranslationModule = TranslationModule = tslib_1.__decorate([
 
 
 /***/ }),
-/* 167 */
+/* 172 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -15117,8 +15755,8 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.TranslationController = void 0;
 const tslib_1 = __webpack_require__(1);
 const common_1 = __webpack_require__(2);
-const utils_service_1 = __webpack_require__(114);
-const translation_service_1 = __webpack_require__(168);
+const utils_service_1 = __webpack_require__(115);
+const translation_service_1 = __webpack_require__(173);
 let TranslationController = class TranslationController {
     constructor(translationService, utils) {
         this.translationService = translationService;
@@ -15142,7 +15780,7 @@ exports.TranslationController = TranslationController = tslib_1.__decorate([
 
 
 /***/ }),
-/* 168 */
+/* 173 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -15150,10 +15788,10 @@ var _a, _b;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.TranslationService = void 0;
 const tslib_1 = __webpack_require__(1);
-const axios_1 = __webpack_require__(139);
+const axios_1 = __webpack_require__(144);
 const common_1 = __webpack_require__(2);
 const config_1 = __webpack_require__(3);
-const utils_1 = __webpack_require__(82);
+const utils_1 = __webpack_require__(83);
 let TranslationService = class TranslationService {
     constructor(httpService, configService) {
         this.httpService = httpService;
@@ -15201,7 +15839,7 @@ exports.TranslationService = TranslationService = tslib_1.__decorate([
 
 
 /***/ }),
-/* 169 */
+/* 174 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -15209,7 +15847,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.UtilsModule = void 0;
 const tslib_1 = __webpack_require__(1);
 const common_1 = __webpack_require__(2);
-const utils_service_1 = __webpack_require__(114);
+const utils_service_1 = __webpack_require__(115);
 let UtilsModule = class UtilsModule {
 };
 exports.UtilsModule = UtilsModule;
@@ -15223,7 +15861,7 @@ exports.UtilsModule = UtilsModule = tslib_1.__decorate([
 
 
 /***/ }),
-/* 170 */
+/* 175 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -15231,7 +15869,7 @@ var _a;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.EmailController = void 0;
 const tslib_1 = __webpack_require__(1);
-const mailer_1 = __webpack_require__(20);
+const mailer_1 = __webpack_require__(21);
 const common_1 = __webpack_require__(2);
 let EmailController = class EmailController {
     constructor(mailService) {

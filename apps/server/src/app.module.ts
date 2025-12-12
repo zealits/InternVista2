@@ -5,6 +5,7 @@ import { RavenInterceptor, RavenModule } from "nest-raven";
 import { ZodValidationPipe } from "nestjs-zod";
 import { join } from "path";
 
+import { AdminModule } from "./admin/admin.module";
 import { AuthModule } from "./auth/auth.module";
 import { CacheModule } from "./cache/cache.module";
 import { ConfigModule } from "./config/config.module";
@@ -39,6 +40,7 @@ import { EmailController } from './email.controller';
     PrinterModule,
     TranslationModule,
     ContributorsModule,
+    AdminModule,
 
     // Static Assets
     ServeStaticModule.forRoot({

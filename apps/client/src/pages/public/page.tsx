@@ -110,11 +110,17 @@ export const PublicResumePage = () => {
   );
 };
 
-export const publicLoader: LoaderFunction<ResumeDto> = async ({ params }) => {
-  try {
-    const username = params.username as string;
-    const slug = params.slug as string;
+export const publicLoader: LoaderFunction<ResumeDto> = async ({ params, request }) => {
+  const username = params.username as string;
+  const slug = params.slug as string;
 
+  // Prevent admin routes from being matched by this loader
+  // Check both the username param and the URL path to catch admin routes early
+  if (username === "admin" || request.url.includes("/admin/")) {
+    return redirect("/");
+  }
+
+  try {
     const resume = await queryClient.fetchQuery({
       queryKey: ["resume", { username, slug }],
       queryFn: () => findResumeByUsernameSlug({ username, slug }),
