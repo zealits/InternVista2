@@ -321,6 +321,8 @@ export class PrinterService {
       let url = this.utils.getUrl();
       const publicUrl = this.configService.getOrThrow<string>("PUBLIC_URL");
       const storageUrl = this.configService.getOrThrow<string>("STORAGE_URL");
+      
+      this.logger.debug(`Resolved client URL: ${url}, will navigate to: ${url}/artboard/preview`);
 
       // Only replace localhost with host.docker.internal if browser is running in Docker (remote Chrome)
       // When using direct launch (browser on same machine), keep localhost as-is
@@ -328,6 +330,7 @@ export class PrinterService {
         // Switch client URL from `localhost` to `host.docker.internal` in development
         // This is required because the browser is running in a container and the client is running on the host machine.
         url = url.replace("localhost", "host.docker.internal");
+        this.logger.debug(`Modified URL for Docker: ${url}`);
 
         await page.setRequestInterception(true);
 
