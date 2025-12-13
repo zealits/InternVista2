@@ -24,9 +24,9 @@ jobs:
           node-version: "20.x"
 
       # Step 3: Install backend dependencies (root)
-      - name: Install backend dependencies
-        run: npm install
-        working-directory: .
+    #   - name: Install backend dependencies
+        # run: npm install
+        # working-directory: .
 
       # Step 4: Setup SSH for Deployment
       - name: Setup SSH
@@ -59,7 +59,7 @@ jobs:
               mv ~/.env.bak /.env
             fi
 
-            # Install backend dependencies
+            # Install  dependencies
             pnpm install
             pnpm run build
 
