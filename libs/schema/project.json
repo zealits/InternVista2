@@ -5,13 +5,11 @@
   "projectType": "library",
   "targets": {
     "build": {
-      "executor": "@nx/js:swc",
-      "outputs": ["{options.outputPath}"],
+      "executor": "nx:run-commands",
+      "outputs": ["{workspaceRoot}/dist/libs/schema"],
       "options": {
-        "outputPath": "dist/libs/schema",
-        "main": "libs/schema/src/index.ts",
-        "tsConfig": "libs/schema/tsconfig.lib.json",
-        "assets": ["libs/schema/*.md"]
+        "command": "pnpm exec swc libs/schema/src -d dist/libs/schema --config-file=libs/schema/.swcrc",
+        "cwd": "{workspaceRoot}"
       }
     },
     "lint": {

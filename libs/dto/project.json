@@ -5,13 +5,11 @@
   "projectType": "library",
   "targets": {
     "build": {
-      "executor": "@nx/js:swc",
-      "outputs": ["{options.outputPath}"],
+      "executor": "nx:run-commands",
+      "outputs": ["{workspaceRoot}/dist/libs/dto"],
       "options": {
-        "outputPath": "dist/libs/dto",
-        "main": "libs/dto/src/index.ts",
-        "tsConfig": "libs/dto/tsconfig.lib.json",
-        "assets": ["libs/dto/*.md"]
+        "command": "pnpm exec swc libs/dto/src -d dist/libs/dto --config-file=libs/dto/.swcrc",
+        "cwd": "{workspaceRoot}"
       }
     },
     "lint": {

@@ -5,13 +5,11 @@
   "projectType": "library",
   "targets": {
     "build": {
-      "executor": "@nx/js:swc",
-      "outputs": ["{options.outputPath}"],
+      "executor": "nx:run-commands",
+      "outputs": ["{workspaceRoot}/dist/libs/parser"],
       "options": {
-        "outputPath": "dist/libs/parser",
-        "main": "libs/parser/src/index.ts",
-        "tsConfig": "libs/parser/tsconfig.lib.json",
-        "assets": ["libs/parser/*.md"]
+        "command": "pnpm exec swc libs/parser/src -d dist/libs/parser --config-file=libs/parser/.swcrc",
+        "cwd": "{workspaceRoot}"
       }
     },
     "lint": {
