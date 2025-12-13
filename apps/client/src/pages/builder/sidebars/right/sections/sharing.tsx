@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useToast } from "@/client/hooks/use-toast";
 import { useUser } from "@/client/services/user";
 import { useResumeStore } from "@/client/stores/resume";
+import { buildSubdomainUrl, getBaseDomain } from "@/client/libs/subdomain";
 
 import { getSectionIcon } from "../shared/section-icon";
 
@@ -18,8 +19,9 @@ export const SharingSection = () => {
   const slug = useResumeStore((state) => state.resume.slug);
   const isPublic = useResumeStore((state) => state.resume.visibility === "public");
 
-  // Constants
-  const url = `${window.location.origin}/${username}/${slug}`;
+  // Generate subdomain URL: https://username.internvista.com/slug
+  const baseDomain = getBaseDomain();
+  const url = buildSubdomainUrl(username || "", `/${slug}`, window.location.protocol, baseDomain);
 
   const onCopy = async () => {
     await navigator.clipboard.writeText(url);

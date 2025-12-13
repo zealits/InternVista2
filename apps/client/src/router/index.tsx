@@ -125,6 +125,10 @@ export const routes = createRoutesFromElements(
     </Route>
 
     {/* Public Routes */}
+    {/* Subdomain-based routing: /:slug (username from subdomain) */}
+    <Route path=":slug" loader={publicLoader} element={<PublicResumePage />} />
+    
+    {/* Path-based routing: /:username/:slug (legacy support) */}
     <Route path=":username">
       <Route element={<PublicRouteGuard />}>
         <Route path=":slug" loader={publicLoader} element={<PublicResumePage />} />

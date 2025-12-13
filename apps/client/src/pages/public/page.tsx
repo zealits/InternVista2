@@ -10,6 +10,7 @@ import { Link, LoaderFunction, redirect, useLoaderData } from "react-router-dom"
 import { Icon } from "@/client/components/icon";
 import { ThemeSwitch } from "@/client/components/theme-switch";
 import { queryClient } from "@/client/libs/query-client";
+import { getSubdomain } from "@/client/libs/subdomain";
 import { findResumeByUsernameSlug, usePrintResume } from "@/client/services/resume";
 
 export const PublicResumePage = () => {
@@ -111,8 +112,33 @@ export const PublicResumePage = () => {
 };
 
 export const publicLoader: LoaderFunction<ResumeDto> = async ({ params, request }) => {
-  const username = params.username as string;
-  const slug = params.slug as string;
+  // Check if we're on a subdomain (e.g., aniketkhillare.internvista.com)
+  const hostname = new URL(request.url).hostname;
+  const subdomain = getSubdomain(hostname);
+  
+  let username: string;
+  let slug: string;
+
+  // Check if params.username exists (path-based routing) or if we're on subdomain (subdomain routing)
+  if (subdomain && !params.username) {
+    // Subdomain routing: username from subdomain, slug from path
+    // URL: https://aniketkhillare.internvista.com/aniket
+    username = subdomain;
+    slug = params.slug as string;
+    
+    // If no slug provided on subdomain, redirect to home
+    if (!slug) {
+      return redirect("/");
+    }
+  } else if (params.username && params.slug) {
+    // Path-based routing: username and slug from path (legacy support)
+    // URL: https://internvista.com/aniketkhillare/aniket
+    username = params.username;
+    slug = params.slug;
+  } else {
+    // Invalid route - redirect to home
+    return redirect("/");
+  }
 
   // Prevent admin routes from being matched by this loader
   // Check both the username param and the URL path to catch admin routes early

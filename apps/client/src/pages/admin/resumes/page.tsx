@@ -10,6 +10,7 @@ import { useState } from "react";
 
 import { useAllResumes } from "@/client/services/admin";
 import { UserAvatar } from "@/client/components/user-avatar";
+import { buildSubdomainUrl, getBaseDomain } from "@/client/libs/subdomain";
 
 export const AdminResumesPage = () => {
   const navigate = useNavigate();
@@ -136,7 +137,15 @@ export const AdminResumesPage = () => {
                               variant="ghost"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                navigate(`/${resume.user.username}/${resume.slug}`);
+                                // Navigate to subdomain URL: https://username.internvista.com/slug
+                                const baseDomain = getBaseDomain();
+                                const subdomainUrl = buildSubdomainUrl(
+                                  resume.user.username,
+                                  `/${resume.slug}`,
+                                  window.location.protocol,
+                                  baseDomain
+                                );
+                                window.location.href = subdomainUrl;
                               }}
                             >
                               {t`Public View`}
