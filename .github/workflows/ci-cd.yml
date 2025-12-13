@@ -1,0 +1,80 @@
+name: Node.js CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Checkout the repository
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # Step 2: Set up Node.js environment
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "20.x"
+
+      # Step 3: Install backend dependencies (root)
+      - name: Install backend dependencies
+        run: npm install
+        working-directory: .
+
+      # Step 4: Setup SSH for Deployment
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{secrets.SSH_PRIVATE_KEY}}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H dev.zealits.com >> ~/.ssh/known_hosts
+
+      # Step 5: Deploy to server
+      - name: Deploy to server
+        if: github.ref == 'refs/heads/main'
+        run: |
+          ssh admin@dev.zealits.com << 'EOF'
+            # If repository exists, back up config and pull latest changes; otherwise, clone the repo
+            if [ -d ~/InternVista2 ]; then
+              if [ -f ~/InternVista2/.env ]; then
+                cp ~/InternVista2/.env ~/.env.bak
+              fi
+              cd ~/InternVista2
+              git reset --hard origin/main
+              git pull origin main
+            else
+              git clone https://github.com/zealits/InternVista2.git ~/InternVista2
+              cd ~/InternVista2
+            fi
+
+            # Restore the config.env file if backup exists
+            if [ -f ~/.env.bak ]; then
+              mv ~/.env.bak /.env
+            fi
+
+            # Install backend dependencies
+            pnpm install
+            pnpm run build
+
+            
+            
+
+            # Restart the application using PM2
+            if pm2 list | grep -q "InternVista"; then
+              echo "Restarting InternVista"
+              pm2 restart InternVista
+            else
+              echo "Starting InternVista"
+              pm2 start pnpm --name "InternVista" -- run start
+            fi
+
+            # Check the status of PM2 processes
+            pm2 list
+          EOF
