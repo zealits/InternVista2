@@ -5,6 +5,7 @@ import { NestExpressApplication } from "@nestjs/platform-express";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import * as Sentry from "@sentry/node";
 import compression, { CompressionFilter } from "compression";
+import cors from "cors";
 import { Request, Response } from "express";
 import cookieParser from "cookie-parser";
 import helmet from "helmet";
@@ -64,11 +65,24 @@ async function bootstrap() {
   // Cookie Parser
   app.use(cookieParser());
 
-  // CORS
-  app.enableCors({
-    credentials: true,
-    origin: process.env.NODE_ENV === "production",
-  });
+  // Trust Proxy & CORS - Production configuration
+  if (process.env.NODE_ENV === "production") {
+    const express = app.getHttpAdapter().getInstance();
+    express.set("trust proxy", true);
+    express.use(
+      cors({
+        origin: ["https://internvista.com", "http://localhost"],
+        credentials: true,
+      }),
+    );
+    express.use(cors());
+  } else {
+    // CORS - Development
+    app.enableCors({
+      credentials: true,
+      origin: true,
+    });
+  }
 
   // Helmet - enabled only in production
   if (process.env.NODE_ENV === "production") {
