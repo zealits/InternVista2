@@ -1,6 +1,7 @@
 import { t } from "@lingui/macro";
 import { ArrowLeft, User, Calendar, FileText, CheckCircle, XCircle, Clock } from "@phosphor-icons/react";
-import { Button, Card, CardContent, CardHeader, CardTitle, ScrollArea, Badge } from "@reactive-resume/ui";
+import { Avatar, AvatarFallback, AvatarImage, Button, Card, CardContent, CardHeader, CardTitle, ScrollArea, Badge } from "@reactive-resume/ui";
+import { getInitials } from "@reactive-resume/utils";
 import { motion } from "framer-motion";
 import { Helmet } from "react-helmet-async";
 import { useNavigate, useParams } from "react-router-dom";
@@ -11,7 +12,6 @@ import {
   useUpdateApplicationStatus,
 } from "@/client/services/internship";
 import { toast } from "@/client/hooks/use-toast";
-import { UserAvatar } from "@/client/components/user-avatar";
 import { ResumeLink } from "./_components/resume-link";
 
 export const AdminInternshipApplicationsPage = () => {
@@ -129,11 +129,14 @@ export const AdminInternshipApplicationsPage = () => {
                     <CardHeader>
                       <div className="flex items-start justify-between">
                         <div className="flex items-center gap-4">
-                          <UserAvatar
-                            user={application.user}
-                            size={48}
-                            className="size-12"
-                          />
+                          <Avatar className="size-12">
+                            {application.user?.picture ? (
+                              <AvatarImage src={application.user.picture} alt={application.user.name} />
+                            ) : null}
+                            <AvatarFallback className="text-xs font-semibold">
+                              {application.user ? getInitials(application.user.name) : "?"}
+                            </AvatarFallback>
+                          </Avatar>
                           <div>
                             <CardTitle className="text-xl">
                               {application.user?.name || t`Unknown User`}
