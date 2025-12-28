@@ -1,14 +1,20 @@
-import { Controller, Get, Param, Query, UseGuards } from "@nestjs/common";
+import { Controller, Get, Param, Query, UseGuards, Patch, Body } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
 
 import { AdminGuard } from "./guards/admin.guard";
 import { AdminService } from "./admin.service";
+import { InternshipService } from "../internship/internship.service";
+import { ResumeService } from "../resume/resume.service";
 
 @ApiTags("Admin")
 @Controller("admin")
 @UseGuards(AdminGuard)
 export class AdminController {
-  constructor(private readonly adminService: AdminService) {}
+  constructor(
+    private readonly adminService: AdminService,
+    private readonly internshipService: InternshipService,
+    private readonly resumeService: ResumeService,
+  ) {}
 
   @Get("candidates/count")
   async getCandidateCount() {
@@ -91,6 +97,36 @@ export class AdminController {
     const skipNum = skip ? parseInt(skip, 10) : 0;
     const takeNum = take ? parseInt(take, 10) : 50;
     return await this.adminService.getUsersByProviderFilter(provider, skipNum, takeNum);
+  }
+
+  @Get("internships")
+  async getAllInternships(@Query("activeOnly") activeOnly?: string) {
+    const active = activeOnly !== "false";
+    return await this.internshipService.getAllInternships(active);
+  }
+
+  @Get("internships/:id/applications")
+  async getInternshipApplications(@Param("id") internshipId: string) {
+    return await this.internshipService.getInternshipApplications(internshipId);
+  }
+
+  @Get("applications")
+  async getAllApplications() {
+    return await this.internshipService.getAllApplications();
+  }
+
+  @Patch("applications/:id/status")
+  async updateApplicationStatus(
+    @Param("id") applicationId: string,
+    @Body() body: { status: "pending" | "accepted" | "rejected" },
+  ) {
+    return await this.internshipService.updateApplicationStatus(applicationId, body.status);
+  }
+
+  @Get("resumes/:id")
+  async getResumeById(@Param("id") id: string) {
+    // Admin can view any resume without ownership check
+    return await this.resumeService.findOne(id);
   }
 }
 

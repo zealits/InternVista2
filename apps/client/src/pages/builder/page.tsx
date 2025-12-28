@@ -6,8 +6,10 @@ import { LoaderFunction, redirect } from "react-router-dom";
 
 import { queryClient } from "@/client/libs/query-client";
 import { findResumeById } from "@/client/services/resume";
+import { findResumeByIdAsAdmin } from "@/client/services/resume/admin";
 import { useBuilderStore } from "@/client/stores/builder";
 import { useResumeStore } from "@/client/stores/resume";
+import { fetchUser } from "@/client/services/user";
 
 export const BuilderPage = () => {
   const frameRef = useBuilderStore((state) => state.frame.ref);
@@ -55,16 +57,62 @@ export const builderLoader: LoaderFunction<ResumeDto> = async ({ params }) => {
   try {
     const id = params.id as string;
 
-    const resume = await queryClient.fetchQuery({
-      queryKey: ["resume", { id }],
-      queryFn: () => findResumeById({ id }),
-    });
+    // Try to fetch resume normally first
+    try {
+      const resume = await queryClient.fetchQuery({
+        queryKey: ["resume", { id }],
+        queryFn: () => findResumeById({ id }),
+      });
 
-    useResumeStore.setState({ resume });
-    useResumeStore.temporal.getState().clear();
+      useResumeStore.setState({ resume });
+      useResumeStore.temporal.getState().clear();
 
-    return resume;
+      return resume;
+    } catch (error) {
+      // If regular fetch fails, check if user is admin and try admin endpoint
+      try {
+        const user = await queryClient.fetchQuery({
+          queryKey: ["user"],
+          queryFn: fetchUser,
+        });
+
+        if (user?.isAdmin) {
+          const resume = await findResumeByIdAsAdmin(id);
+          useResumeStore.setState({ resume });
+          useResumeStore.temporal.getState().clear();
+          return resume;
+        }
+      } catch (adminError) {
+        // If admin fetch also fails, redirect
+      }
+
+      // If all attempts fail, check if user is admin and redirect accordingly
+      try {
+        const user = await queryClient.fetchQuery({
+          queryKey: ["user"],
+          queryFn: fetchUser,
+        });
+        if (user?.isAdmin) {
+          return redirect("/admin/internships");
+        }
+      } catch {
+        // Fall through to default redirect
+      }
+      return redirect("/dashboard");
+    }
   } catch (error) {
+    // Try to redirect to admin panel if user is admin
+    try {
+      const user = await queryClient.fetchQuery({
+        queryKey: ["user"],
+        queryFn: fetchUser,
+      });
+      if (user?.isAdmin) {
+        return redirect("/admin/internships");
+      }
+    } catch {
+      // Fall through to default redirect
+    }
     return redirect("/dashboard");
   }
 };

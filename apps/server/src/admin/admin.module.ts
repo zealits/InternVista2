@@ -1,12 +1,14 @@
 import { forwardRef, Module } from "@nestjs/common";
 
 import { AuthModule } from "../auth/auth.module";
+import { InternshipModule } from "../internship/internship.module";
+import { ResumeModule } from "../resume/resume.module";
 import { AdminAuthController } from "./admin-auth.controller";
 import { AdminController } from "./admin.controller";
 import { AdminService } from "./admin.service";
 
 @Module({
-  imports: [forwardRef(() => AuthModule.register())],
+  imports: [forwardRef(() => AuthModule.register()), InternshipModule, ResumeModule],
   controllers: [AdminController, AdminAuthController],
   providers: [AdminService],
   exports: [AdminService],

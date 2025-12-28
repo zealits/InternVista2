@@ -33,6 +33,7 @@ model User {
   provider         Provider
   secrets          Secrets?
   resumes          Resume[]
+  applications     InternshipApplication[]
 }
 
 model Secrets {
@@ -64,4 +65,44 @@ model Resume {
   @@unique([userId, id])
   @@unique([userId, slug])
   @@index(fields: [userId])
+}
+
+model Internship {
+  id          String   @id @default(cuid())
+  title       String
+  company     String
+  description String
+  location    String?
+  type        String?  // e.g., "Remote", "On-site", "Hybrid"
+  duration    String?  // e.g., "3 months", "6 months"
+  stipend     String?
+  requirements String?
+  skills      String[] @default([])
+  postedBy    String   // Admin user ID
+  isActive    Boolean  @default(true)
+  deadline    DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  applications InternshipApplication[]
+
+  @@index(fields: [isActive])
+  @@index(fields: [postedBy])
+}
+
+model InternshipApplication {
+  id           String     @id @default(cuid())
+  internshipId String
+  internship   Internship @relation(fields: [internshipId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status       String     @default("pending") // "pending", "accepted", "rejected"
+  coverLetter  String?
+  resumeId     String?    // Optional resume reference
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@unique([internshipId, userId])
+  @@index(fields: [internshipId])
+  @@index(fields: [userId])
+  @@index(fields: [status])
 }

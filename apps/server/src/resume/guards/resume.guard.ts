@@ -25,9 +25,10 @@ export class ResumeGuard implements CanActivate {
       }
 
       // If the resume is private and the user is authenticated and is the owner of the resume, attach the resume to the request payload.
+      // Admins can view any resume regardless of ownership.
       // Else, if either the user is not authenticated or is not the owner of the resume, throw a 404 error.
       if (resume.visibility === "private") {
-        if (user && user && user.id === resume.userId) {
+        if (user && (user.id === resume.userId || user.isAdmin)) {
           request.payload = { resume };
         } else {
           throw new NotFoundException(ErrorMessage.ResumeNotFound);

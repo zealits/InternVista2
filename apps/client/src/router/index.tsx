@@ -26,6 +26,10 @@ import { ResumesPage } from "../pages/dashboard/resumes/page";
 import { SettingsPage } from "../pages/dashboard/settings/page";
 import { EmailPage } from "../pages/dashboard/get_email/page";
 import {CareerPage } from "../pages/dashboard/career_guidance/page";
+import { InternshipsPage } from "../pages/dashboard/internships/page";
+import { AdminInternshipsPage } from "../pages/admin/internships/page";
+import { AdminInternshipApplicationsPage } from "../pages/admin/internships/[id]/applications/page";
+import { AdminResumePreviewPage, adminResumePreviewLoader } from "../pages/admin/resumes/[id]/preview/page";
 import { HomeLayout } from "../pages/home/layout";
 import { HomePage } from "../pages/home/page";
 import { publicLoader, PublicResumePage } from "../pages/public/page";
@@ -96,6 +100,9 @@ export const routes = createRoutesFromElements(
         <Route path="aiiventure" element={<AdminAiiventurePage />} />
         <Route path="users" element={<AdminUsersPage />} />
         <Route path="resumes" element={<AdminResumesPage />} />
+        <Route path="internships" element={<AdminInternshipsPage />} />
+        <Route path="internships/:id/applications" element={<AdminInternshipApplicationsPage />} />
+        <Route path="resumes/:id/preview" loader={adminResumePreviewLoader} element={<AdminResumePreviewPage />} />
         <Route path="provider/:provider" element={<AdminProviderPage />} />
         <Route index element={<Navigate to="/admin/aiiventure" replace />} />
       </Route>
@@ -108,6 +115,7 @@ export const routes = createRoutesFromElements(
           <Route path="settings" element={<SettingsPage />} />
           <Route path="getmail" element={<EmailPage />} />
           <Route path="careerguidance" element={<CareerPage />} />
+          <Route path="internships" element={<InternshipsPage />} />
 
           <Route index element={<Navigate to="/dashboard/resumes" replace />} />
         </Route>

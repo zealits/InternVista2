@@ -1,5 +1,5 @@
 import { t } from "@lingui/macro";
-import { ChartBar } from "@phosphor-icons/react";
+import { ChartBar, Briefcase } from "@phosphor-icons/react";
 import { Button, KeyboardShortcut, Separator } from "@reactive-resume/ui";
 import { cn } from "@reactive-resume/utils";
 import { motion } from "framer-motion";
@@ -70,12 +70,23 @@ export const AdminSidebar = ({ setOpen }: SidebarProps) => {
     setOpen?.(false);
   });
 
+  useKeyboardShortcut(["shift", "i"], () => {
+    navigate("/admin/internships");
+    setOpen?.(false);
+  });
+
   const sidebarItems: SidebarItem[] = [
     {
       path: "/admin/aiiventure",
       name: t`Dashboard`,
       shortcut: "⇧D",
       icon: <ChartBar />,
+    },
+    {
+      path: "/admin/internships",
+      name: t`Internships`,
+      shortcut: "⇧I",
+      icon: <Briefcase />,
     },
   ];
 

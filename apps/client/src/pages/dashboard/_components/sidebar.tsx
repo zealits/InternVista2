@@ -1,5 +1,5 @@
 import { t } from "@lingui/macro";
-import { Envelope, FadersHorizontal, Path, ReadCvLogo } from "@phosphor-icons/react";
+import { Envelope, FadersHorizontal, Path, ReadCvLogo, Briefcase } from "@phosphor-icons/react";
 import { Button, KeyboardShortcut, Separator } from "@reactive-resume/ui";
 import { cn } from "@reactive-resume/utils";
 import { motion } from "framer-motion";
@@ -90,6 +90,11 @@ export const Sidebar = ({ setOpen }: SidebarProps) => {
     setOpen?.(false);
   });
 
+  useKeyboardShortcut(["shift", "i"], () => {
+    navigate("/dashboard/internships");
+    setOpen?.(false);
+  });
+
   const sidebarItems: SidebarItem[] = [
     {
       path: "/dashboard/resumes",
@@ -114,6 +119,12 @@ export const Sidebar = ({ setOpen }: SidebarProps) => {
       name: t`Career Guidance`,
       shortcut: "⇧C",
       icon: <Path />,
+    },
+    {
+      path: "/dashboard/internships",
+      name: t`Internships`,
+      shortcut: "⇧I",
+      icon: <Briefcase />,
     },
   ];
 
