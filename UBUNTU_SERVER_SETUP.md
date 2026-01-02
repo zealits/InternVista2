@@ -171,3 +171,4 @@ sudo apt-get install -y \
 ```
 
 However, since you're using `puppeteer.connect()` (not launching Chrome directly), these shouldn't be necessary.
+

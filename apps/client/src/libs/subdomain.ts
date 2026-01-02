@@ -74,3 +74,4 @@ export const buildSubdomainUrl = (
   
   return `${protocol}//${subdomain}.${baseDomain}${cleanPath}`;
 };
+

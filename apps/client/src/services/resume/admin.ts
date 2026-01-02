@@ -8,3 +8,4 @@ export const findResumeByIdAsAdmin = async (id: string): Promise<ResumeDto> => {
   return response.data;
 };
 
+
